@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mi ponderado</title>
+<meta name="description" content="Calcula tu ponderado y mira qué notas necesitas para aprobar en los cursos de nivelación.">
+<meta name="theme-color" content="#061F47">
+<meta property="og:title" content="Mi ponderado">
+<meta property="og:description" content="Calcula tu ponderado y mira qué notas necesitas para aprobar.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🧮%3C/text%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#061F47;--green:#00F03C;--blue:#0A5CFF;--bg:#F3F3F3;--card:#fff;--ink:#0B1F4B;--txt:#1A1A1A;--mut:#6B6B6B;--line:#E0E0E0;--lines:#0B1F4B;--fld:#fff;--bad:#ff7a7a;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#07142b;--card:#0d2145;--ink:#eaf0ff;--txt:#dfe6f5;--mut:#9fb0cf;--line:#233a66;--lines:#9fb0cf;--fld:#0a1a38}}
+:root[data-theme="dark"]{--bg:#07142b;--card:#0d2145;--ink:#eaf0ff;--txt:#dfe6f5;--mut:#9fb0cf;--line:#233a66;--lines:#9fb0cf;--fld:#0a1a38}
+html{background:var(--navy);scroll-padding-top:env(safe-area-inset-top,0px)}
+@media(prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);font:500 16px/1.55 Montserrat,"Helvetica Neue",Arial,sans-serif;min-height:100vh}
+.wrap{max-width:1070px;margin:0 auto;padding:0 16px}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.hd,.hero,.faq,footer{background:var(--navy);color:#fff}
+.hd1{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:16px;padding-bottom:12px}
+.logo{font-weight:800;font-size:1.15rem;letter-spacing:.03em;text-transform:uppercase}
+.logo b{color:var(--green)}
+.btn{display:inline-block;background:var(--green);color:var(--navy);font:700 .8rem/1 Montserrat,Arial,sans-serif;letter-spacing:.03em;text-transform:uppercase;padding:14px 18px;border:0;border-radius:2px;cursor:pointer;text-decoration:none}
+#tabs{display:flex;flex-wrap:wrap}
+#tabs button{flex:1 1 150px;background:none;border:0;border-bottom:4px solid var(--s);color:#fff;font:700 .82rem/1.25 Montserrat,Arial,sans-serif;letter-spacing:.03em;text-transform:uppercase;padding:14px 8px 12px;cursor:pointer}
+#tabs button.on{color:var(--green)}
+#tabs button:disabled{opacity:.6;cursor:default}
+.soon{font-style:normal;background:var(--green);color:var(--navy);font-size:.62rem;padding:2px 6px;border-radius:3px;margin-left:4px;letter-spacing:.05em}
+.hero{padding:36px 0 44px}
+.hero h1{font:900 clamp(2.3rem,9vw,4rem)/1.05 Montserrat,Arial,sans-serif;text-transform:uppercase;margin:0 0 14px}
+.hero h1 span{color:var(--green);display:block}
+.hero p{max-width:46ch;color:rgba(255,255,255,.8);margin:0 0 28px}
+.nums{display:flex;flex-wrap:wrap;gap:20px 40px}
+.nb b{display:block;font:900 clamp(2.6rem,10vw,5.3rem)/1 Montserrat,Arial,sans-serif;color:var(--green)}
+.nb span{font-weight:700;text-transform:uppercase;font-size:.78rem;letter-spacing:.03em}
+.wb{display:flex;gap:2px;height:36px;margin-top:24px}
+.wb span{display:flex;align-items:center;justify-content:center;min-width:0;font-weight:800;font-size:.85rem;background:var(--wb);color:var(--wc)}
+.nb span::before{content:"";display:inline-block;width:10px;height:10px;background:var(--wb);margin-right:8px}
+.body{padding-top:20px;padding-bottom:44px}
+h2{font:800 1.2rem/1.2 Montserrat,Arial,sans-serif;text-transform:uppercase;color:var(--ink);margin:30px 0 8px}
+.mut{color:var(--mut);margin:0 0 8px;font-size:.9rem}
+#sum{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--card);border:1px solid var(--line);border-left:6px solid var(--green);padding:12px 16px;margin-bottom:20px}
+.sm1{display:flex;align-items:center;justify-content:space-between;gap:12px}
+#sl1{font-weight:800;text-transform:uppercase;font-size:.9rem;letter-spacing:.02em;color:var(--ink)}
+#big{font:900 3rem/1 Montserrat,Arial,sans-serif;color:var(--ink);font-variant-numeric:tabular-nums}
+.pbar{position:relative;height:12px;background:var(--line);margin:12px 0 10px}
+#pf{position:absolute;left:0;top:0;bottom:0;background:var(--green);transition:width .25s}
+#mk{position:absolute;top:-5px;bottom:-5px;width:3px;margin-left:-1px;background:var(--ink)}
+.sm2{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:.88rem;color:var(--mut)}
+.minl{display:flex;align-items:center;gap:8px;font-weight:700;color:var(--ink);text-transform:uppercase;font-size:.8rem;letter-spacing:.02em}
+.tag{display:inline-block;font-weight:800;font-size:.72rem;letter-spacing:.05em;text-transform:uppercase;padding:3px 8px;border-radius:3px}
+.tag.y{background:var(--green);color:var(--navy)}.tag.n{background:var(--bad);color:var(--navy)}
+.blk{background:var(--card);border:1px solid var(--line);border-left:6px solid var(--green);margin-bottom:14px}
+.bh{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px}
+.bn{display:flex;align-items:center;gap:14px;min-width:0}
+.pct{font:900 2rem/1 Montserrat,Arial,sans-serif;color:var(--ink)}
+.bn b{font-weight:800;text-transform:uppercase;font-size:.88rem;letter-spacing:.02em;color:var(--ink)}
+.bb{padding:0 16px 8px}
+.row{display:grid;grid-template-columns:minmax(0,1fr) 120px;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.row.grp{font-weight:700}
+.nm{padding-left:calc(var(--d,0)*16px);color:var(--ink)}
+.nm em{font-style:normal;color:var(--mut);font-size:.8rem;font-weight:500;margin-left:8px}
+.sv{font-variant-numeric:tabular-nums;text-align:right;font-weight:800;color:var(--ink);padding-right:4px}
+.sv.pn{font-weight:500;font-style:italic;color:var(--mut);font-size:.85rem}
+input[type=number]{width:100%;font:600 1rem Montserrat,Arial,sans-serif;padding:8px 10px;border:1px solid var(--lines);border-radius:2px;background:var(--fld);color:var(--ink)}
+input.g{width:120px;flex:none;padding:8px;-moz-appearance:textfield}
+input.g::-webkit-outer-spin-button,input.g::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.g::placeholder{color:var(--mut);opacity:1;font-style:italic;font-weight:500;font-size:.9rem}
+.g:placeholder-shown{border-style:dashed;border-color:var(--mut);background:color-mix(in srgb,var(--ink) 5%,var(--fld))}
+#sum .minl input{width:50px;padding:2px 4px;text-align:center;background:transparent;border:0;border-bottom:3px solid var(--green);border-radius:0;color:var(--ink);font-weight:800;font-size:1.05rem;-moz-appearance:textfield}
+#sum .minl input::-webkit-outer-spin-button,#sum .minl input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.hint{margin-top:4px}
+.sc{overflow-x:auto;background:var(--card);border:1px solid var(--line)}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th{background:var(--navy);color:#fff;text-transform:uppercase;font-size:.72rem;letter-spacing:.03em;font-weight:700;padding:10px 8px;white-space:nowrap}
+td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:center;font-weight:600;color:var(--ink)}
+th.pfc{background:var(--green);color:var(--navy)}
+td.pfc{background:rgba(0,240,60,.2);font-weight:800}
+.msg{margin:0;padding:12px 16px;background:var(--card);border:1px solid var(--line);border-left:6px solid var(--green);font-weight:600;color:var(--ink)}
+.msg.bad{border-left-color:var(--bad)}
+.faq{padding:40px 0 44px}
+.faq h2{color:#fff;margin:0 0 20px}
+.qa{border-top:1px solid rgba(255,255,255,.35)}
+.qa:last-of-type{border-bottom:1px solid rgba(255,255,255,.35)}
+.qa summary{list-style:none;display:grid;grid-template-columns:64px 1fr 30px;gap:12px;align-items:start;padding:20px 0;cursor:pointer}
+.qa summary::-webkit-details-marker{display:none}
+.no{font:900 2.6rem/1 Montserrat,Arial,sans-serif;color:var(--green)}
+.q{font-weight:700;font-size:1.05rem;line-height:1.35;padding-top:4px}
+.pm{position:relative;width:30px;height:30px;margin-top:4px;transition:transform .2s}
+.pm::before,.pm::after{content:"";position:absolute;left:0;right:0;top:50%;height:4px;margin-top:-2px;background:#fff}
+.pm::after{transform:rotate(90deg)}
+details[open]>summary .pm{transform:rotate(45deg)}
+.ans{padding:0 42px 22px 76px;color:rgba(255,255,255,.9)}
+.ans p{margin:0 0 10px}
+.ck{display:flex;align-items:center;gap:10px;margin:10px 0}
+.ck input{accent-color:var(--green);width:18px;height:18px}
+.ans .btn{margin-top:8px}
+footer{border-top:1px solid rgba(255,255,255,.2);padding:28px 0 36px;font-size:.85rem}
+.fc{display:flex;flex-wrap:wrap;justify-content:space-between;gap:24px 48px}
+.fc p{max-width:50ch;color:rgba(255,255,255,.75);margin:10px 0 0}
+.fl b{display:block;text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px}
+.fl button{display:block;background:none;border:0;padding:4px 0;color:#fff;font:inherit;text-decoration:underline;cursor:pointer;text-align:left}
+
+.mark{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;background:var(--green);color:var(--navy);font:900 1.05rem Montserrat,Arial,sans-serif;font-style:normal;margin-right:10px;flex:none}
+.hd1 .logo{display:flex;align-items:center;font-size:.78rem;letter-spacing:.05em}
+#tabs{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+#tabs button{flex:none;display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;padding:10px 14px;font:800 .95rem/1.2 Montserrat,Arial,sans-serif;letter-spacing:.01em}
+#tabs button small{font-size:.6rem;font-weight:600;letter-spacing:.08em;color:rgba(255,255,255,.7)}
+#tabs button.on{background:rgba(255,255,255,.08)}
+#tabs button.on small{color:rgba(0,240,60,.9)}
+.hero{position:relative;overflow:hidden;padding:30px 0 34px}
+.hero::after{content:"%";position:absolute;right:-14px;top:-30px;font:900 15rem/1 Montserrat,Arial,sans-serif;color:transparent;-webkit-text-stroke:2px rgba(255,255,255,.14);pointer-events:none}
+.hero .wrap{position:relative;z-index:1}
+.hero h1{font:900 clamp(2.4rem,11.5vw,6rem)/.95 Montserrat,Arial,sans-serif;letter-spacing:-.01em;text-transform:uppercase;margin:0 0 16px}
+.hero h1 span{display:block}
+.hero h1 .t1{color:transparent;-webkit-text-stroke:2px #fff}
+.hero h1 .t2{color:var(--green)}
+.strip{display:flex;width:150px;height:6px;margin:0 0 18px}.strip i{flex:1}
+.hero p{margin:0 0 22px}
+.wb{margin-top:0;height:38px}
+.lg{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:12px;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em}
+.lg span::before{content:"";display:inline-block;width:10px;height:10px;background:var(--wb);margin-right:8px}
+</style>
+</head>
+<body>
+<header class="hd">
+<div class="wrap hd1"><span class="logo"><i class="mark">%</i>Calculadora de notas</span><a class="btn" href="#faq">Cómo funciona</a></div>
+<nav class="wrap" id="tabs" aria-label="Cursos"></nav>
+</header>
+<section class="hero"><div class="wrap">
+<h1><span class="t1">Mi</span><span class="t2">ponderado</span></h1>
+<div class="strip"><i style="background:#0A5CFF"></i><i style="background:#00F03C"></i><i style="background:#F000F0"></i><i style="background:#fff"></i></div>
+<p>Escribe tus notas. Lo que aún no has rendido, déjalo en blanco y verás qué necesitas sacar para aprobar.</p>
+<div class="wb" id="wbar"></div><div class="lg" id="lgd"></div>
+</div></section>
+<main class="wrap body">
+<section id="sum"><div class="sm1"><div><b id="sl1"></b><div class="mut" id="sl2"></div></div><div id="big"></div></div><div class="pbar"><i id="pf"></i><u id="mk"></u></div><div class="sm2"><span id="pt"></span><label class="minl">Nota mínima <input type="number" id="pm" aria-label="Nota mínima para aprobar" min="0" max="20" step="any" value="11"></label></div></section>
+<section id="tree"></section>
+<p class="mut hint">Lo que aún no has rendido aparece como "Por rendir". Un 0 sí cuenta como nota.</p>
+<section id="cb"></section>
+</main>
+<section class="faq" id="faq"><div class="wrap">
+<h2>Cómo funciona</h2>
+<details class="qa"><summary><span class="no">01</span><span class="q">¿Cómo se calcula la nota de este curso?</span><i class="pm"></i></summary><div class="ans"><p id="cinfo"></p></div></details>
+<details class="qa"><summary><span class="no">02</span><span class="q">¿Cómo se redondea?</span><i class="pm"></i></summary><div class="ans"><p>Marca o desmarca cada casilla para ver cómo cambia tu resultado.</p><div id="rules"></div></div></details>
+<details class="qa"><summary><span class="no">03</span><span class="q">¿Qué significa "Por rendir"?</span><i class="pm"></i></summary><div class="ans"><p>Es una evaluación que aún no has dado. Si la dejas en blanco, cuenta como 0 en "Mi promedio hasta ahora" y la página calcula qué necesitas sacar en ella. Si escribes un 0, cuenta como una nota ya rendida.</p></div></details>
+<details class="qa"><summary><span class="no">04</span><span class="q">¿Es una herramienta oficial?</span><i class="pm"></i></summary><div class="ans"><p>No. Es una calculadora para planificar tus notas. El resultado oficial es el que publica la universidad.</p></div></details>
+</div></section>
+<footer><div class="wrap fc"><div><span class="logo">Mi <b>ponderado</b></span><p>Herramienta no oficial. Los pesos y reglas salen de los reglamentos de cada curso; si algo no coincide, vale lo que indique tu profesor o la universidad.</p></div><div class="fl" id="fl"></div></div></footer>
+<script>
+const $=id=>document.getElementById(id),clone=o=>JSON.parse(JSON.stringify(o));
+const rnd=x=>Math.floor(x+.5+1e-9),fmt=x=>String(Math.round(x*100)/100),fg=x=>x.toFixed(1).replace(/\.0$/,"");
+const T=100/3,SC=["#0A5CFF","#00F03C","#F000F0","#FFFFFF"],WB=[["#0A5CFF","#fff"],["#00F03C","#061F47"],["#F000F0","#061F47"]];
+const C={
+mat:{n:"Matemáticas",i:"La Nota de Trabajo sale de PC1 a PC4 (20%, 20%, 30% y 30%) y no redondea las prácticas. La Nota de Trabajo, el parcial y el final se redondean al entero.",root:{ch:[
+ {id:"nt",n:"Nota de Trabajo",w:50,r:1,ch:[{id:"pc1",n:"PC1",w:20},{id:"pc2",n:"PC2",w:20},{id:"pc3",n:"PC3",w:30},{id:"pc4",n:"PC4",w:30}]},
+ {id:"pa",n:"Examen Parcial",w:20,r:1},{id:"fi",n:"Examen Final",w:30,r:1}]}},
+len:{n:"Lenguaje",i:"Las prácticas PC1, PC2 y PC3 valen lo mismo y se promedian. El reglamento no indica redondeos.",root:{ch:[
+ {id:"pr",n:"Promedio de Prácticas",w:40,ch:[{id:"pc1",n:"PC1",w:T},{id:"pc2",n:"PC2",w:T},{id:"pc3",n:"PC3",w:T}]},
+ {id:"pa",n:"Examen Parcial",w:30},{id:"fi",n:"Examen Final",w:30}]}},
+inf:{n:"Informática",i:"La Nota de Trabajo mezcla PC1 (35%), PC2 (45%) y el promedio de 3 controles (20%), y se redondea al entero antes de entrar al promedio final.",root:{ch:[
+ {id:"nt",n:"Nota de Trabajo",w:35,r:1,ch:[{id:"pc1",n:"PC1",w:35},{id:"pc2",n:"PC2",w:45},
+  {id:"co",n:"Promedio de Controles",w:20,ch:[{id:"c1",n:"Control 1",w:T},{id:"c2",n:"Control 2",w:T},{id:"c3",n:"Control 3",w:T}]}]},
+ {id:"pa",n:"Examen Parcial",w:30},{id:"fi",n:"Examen Final",w:35}]}}
+};
+const ST={};let cur,S,idx;
+const walk=(n,f,d=0)=>(n.ch||[]).forEach(c=>{f(c,d);walk(c,f,d+1)});
+const leaves=(n,a=[])=>((n.ch||[]).forEach(c=>c.ch?leaves(c,a):a.push(c)),a);
+const isP=id=>{const g=S.g[id];return g===undefined||g===""||isNaN(+g)};
+const pend=()=>leaves(S.root).filter(l=>isP(l.id));
+const full=o=>{const v={};leaves(S.root).forEach(l=>v[l.id]=isP(l.id)?(o[l.id]??0):Math.min(20,Math.max(0,+S.g[l.id])));return v};
+const ev=(n,v)=>{const x=n.ch?n.ch.reduce((s,c)=>s+ev(c,v)*(+c.w||0)/100,0):v[n.id];return n.r?rnd(x):x};
+const pass=a=>(S.rf?rnd(a):a)>=S.pm-1e-9;
+const inp=c=>`<input class="g" data-id="${c.id}" type="number" inputmode="decimal" min="0" max="20" step="any" placeholder="Por rendir" aria-label="Nota de ${c.n}" value="${S.g[c.id]??""}">`;
+const row=(c,d)=>`<div class="row${c.ch?" grp":""}" style="--d:${d}"><span class="nm">${c.n}<em>${fmt(c.w)}%</em></span>${c.ch?`<span class="sv" id="sv-${c.id}">—</span>`:inp(c)}</div>`;
+
+function setCourse(k){
+ cur=k;S=ST[k]||(ST[k]={root:clone(C[k].root),g:{},rf:false,pm:11});
+ idx={};walk(S.root,c=>idx[c.id]=c);
+ $("tabs").innerHTML=Object.keys(C).map((x,i)=>`<button data-c="${x}" class="${x===k?"on":""}" style="--s:${SC[i]}"><small>Nivelación en</small><span>${C[x].n}</span></button>`).join("")+`<button disabled style="--s:${SC[3]}"><small>Nivelación en</small><span>Intro. a la Ingeniería <em class="soon">Pronto</em></span></button>`;
+ $("fl").innerHTML=`<b>Cursos</b>`+Object.keys(C).map(x=>`<button data-c="${x}" data-f="1">Nivelación en ${C[x].n}</button>`).join("");
+ const G=S.root.ch;
+ $("wbar").innerHTML=G.map((g,i)=>`<span style="flex:${g.w};--wb:${WB[i][0]};--wc:${WB[i][1]}">${fmt(g.w)}%</span>`).join("");
+ $("lgd").innerHTML=G.map((g,i)=>`<span style="--wb:${WB[i][0]}">${g.n}</span>`).join("");
+ let h="";
+ G.forEach(g=>{h+=`<div class="blk"><div class="bh"><div class="bn"><span class="pct">${fmt(g.w)}%</span><b>${g.n}</b></div>${g.ch?`<span class="sv" id="sv-${g.id}">—</span>`:inp(g)}</div>`;
+  if(g.ch){h+=`<div class="bb">`;walk(g,(c,d)=>{h+=row(c,d)});h+=`</div>`}
+  h+=`</div>`});
+ $("tree").innerHTML=h;
+ $("cinfo").textContent=C[k].i;
+ let r="";walk(S.root,c=>r+=`<label class="ck"><input type="checkbox" data-r="${c.id}"${c.r?" checked":""}> Redondear ${c.n} a entero</label>`);
+ $("rules").innerHTML=r+`<label class="ck"><input type="checkbox" id="rf"${S.rf?" checked":""}> Redondear el promedio final a entero (10.5 cuenta como 11)</label><button class="btn" id="rs">Restablecer este curso</button>`;
+ $("pm").value=S.pm;
+ update();
+}
+
+function update(){
+ const R=S.root,P=pend(),n=P.length,a=ev(R,full({})),okk=pass(a);
+ walk(R,c=>{if(!c.ch)return;const hp=leaves(c).some(l=>isP(l.id)),e=$("sv-"+c.id);e.textContent=hp?"Faltan notas":fmt(ev(c,full({})));e.classList.toggle("pn",hp)});
+ $("sl1").textContent=n?"Mi promedio hasta ahora":"Mi promedio final";
+ $("sl2").innerHTML=n?"Lo que falta rendir cuenta como 0.":`<span class="tag ${okk?"y":"n"}">${okk?"Aprobado":"Desaprobado"}</span>`;
+ $("big").textContent=S.rf?rnd(a):fmt(a);
+ $("pf").style.width=Math.min(100,a/20*100)+"%";
+ $("mk").style.left=Math.min(100,S.pm/20*100)+"%";
+ $("pt").textContent=`${fmt(a)} de ${S.pm} para aprobar`;
+ let cb="";
+ if(n){
+  const hdr=`<tr>${P.map(l=>`<th>${l.n}</th>`).join("")}<th class="pfc">Promedio final</th></tr>`;
+  const mk=o=>{const v=ev(R,full(o));return `<tr>${P.map(l=>`<td>${fg(o[l.id])}</td>`).join("")}<td class="pfc">${S.rf?rnd(v):fmt(v)}</td></tr>`};
+  const need=(pv,s)=>{for(let i=0;i<=40;i++){const o={};P.forEach(l=>o[l.id]=l.id===pv?s:i/2);if(pass(ev(R,full(o))))return o}return null};
+  const cand=n===1?Array.from({length:21},(_,i)=>i):Array.from({length:11},(_,i)=>20-2*i);
+  const rows=[];
+  for(const s of cand){const o=need(P[0].id,s);if(o)rows.push(mk(o));if(rows.length===5)break}
+  cb=okk?`<p class="msg ok">Ya aprobaste: aunque saques 0 en lo que falta, llegas a ${S.pm}.</p>`:!rows.length?`<p class="msg bad">Ni con 20 en todo lo que falta llegarías a ${S.pm}.</p>`:`<h2>Combinaciones posibles para aprobar</h2><p class="mut">Cada fila es un ejemplo de notas en lo que te falta rendir y el promedio final que sacarías con ellas.${n>2?" En cada fila cambia la primera evaluación y las demás tienen la misma nota.":""}</p><div class="sc"><table>${hdr}${rows.join("")}</table></div>`;
+ }
+ $("cb").innerHTML=cb;
+}
+
+const h=e=>{const t=e.target,id=t.dataset.id;
+ if(t.classList.contains("g"))S.g[id]=t.value;
+ else if(t.dataset.r)idx[t.dataset.r].r=t.checked?1:0;
+ else if(t.id==="rf")S.rf=t.checked;
+ else if(t.id==="pm")S.pm=+t.value||0;
+ else return;
+ update()};
+document.addEventListener("input",h);document.addEventListener("change",h);
+document.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+ if(b.dataset.c){setCourse(b.dataset.c);if(b.dataset.f)window.scrollTo({top:0})}
+ else if(b.id==="rs"){ST[cur]=null;setCourse(cur)}});
+setCourse("mat");
+</script>
+</body>
+</html>
