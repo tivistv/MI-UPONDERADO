@@ -216,6 +216,26 @@ footer{border-top:1px solid rgba(255,255,255,.2);padding:28px 0 36px;font-size:.
 .zs.pd{background:repeating-linear-gradient(135deg,rgba(255,255,255,.2) 0 3px,transparent 3px 7px),rgba(255,255,255,.07);color:rgba(255,255,255,.7);box-shadow:inset 0 0 0 1px rgba(255,255,255,.28)}
 .lg2{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:10px;font-size:.72rem;font-weight:600;color:rgba(255,255,255,.8)}
 .lg2 span::before{content:"";display:inline-block;width:10px;height:10px;margin-right:7px;background:color-mix(in srgb,var(--wb) var(--sh),#061F47)}
+
+.wb span::before{content:"";position:absolute;left:0;right:0;bottom:0;height:6px;background:rgba(6,31,71,.45)}
+.wb span::after{height:6px;background:#fff}
+.body h2.it{font-size:clamp(1.9rem,8vw,3rem);line-height:1.05;font-weight:900;letter-spacing:-.01em;margin:30px 0 16px}
+@keyframes flt{from{transform:translateY(0)}to{transform:translateY(-5px)}}
+@keyframes flt2{from{transform:translateY(0) rotate(-2deg)}to{transform:translateY(-14px) rotate(2deg)}}
+.wp{animation:flt 7s ease-in-out infinite alternate}
+.wb,.zb{filter:drop-shadow(0 8px 10px rgba(0,0,0,.3))}
+.hero::after{animation:flt2 10s ease-in-out infinite alternate}
+.hdeco{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+.pbar{touch-action:pan-y;cursor:pointer;-webkit-user-select:none;user-select:none}
+.pbar::after{content:"";position:absolute;left:-12px;right:-12px;top:-18px;bottom:-18px}
+#mk{top:-12px;bottom:-12px;width:36px;margin-left:-18px;background:none;cursor:grab;outline:none;z-index:2;touch-action:none}
+#mk::before{content:"";position:absolute;left:50%;top:8px;bottom:8px;width:3px;margin-left:-1.5px;background:var(--ink)}
+#mk::after{content:"";position:absolute;left:50%;top:0;width:16px;height:16px;margin-left:-8px;border-radius:50%;background:var(--ink);border:3px solid var(--card);box-shadow:0 1px 4px rgba(0,0,0,.35);transition:transform .15s}
+#mk:hover::after,.pbar.drag #mk::after{transform:scale(1.25)}
+.pbar.drag #mk{cursor:grabbing}
+#mk:focus-visible::after{box-shadow:0 0 0 3px var(--blue)}
+#mkt{position:absolute;left:50%;bottom:calc(100% + 2px);transform:translateX(-50%) scale(.9);opacity:0;background:var(--ink);color:var(--card);font:800 .8rem/1 Montserrat,Arial,sans-serif;padding:5px 8px;border-radius:4px;pointer-events:none;white-space:nowrap;transition:opacity .15s,transform .15s}
+.pbar.drag #mkt,#mk:hover #mkt,#mk:focus-visible #mkt{opacity:1;transform:translateX(-50%) scale(1)}
 </style>
 <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
 <script defer src="/_vercel/insights/script.js"></script>
@@ -240,16 +260,16 @@ footer{border-top:1px solid rgba(255,255,255,.2);padding:28px 0 36px;font-size:.
 <header class="hd">
 <div class="wrap cs rv" style="--i:1"><button id="cbtn" aria-haspopup="listbox" aria-expanded="false"><span class="cq">Curso:</span><span class="cv" id="cval"></span><i class="chev"></i></button><div id="clist" role="listbox" hidden></div></div>
 </header>
-<section class="hero"><div class="wrap">
+<section class="hero"><div class="hdeco" aria-hidden="true"><i class="dt" style="width:16px;height:16px;background:#00F03C;top:12%;right:8%;--x:-10px;--y:14px;--t:7s"></i><i class="dt" style="width:11px;height:11px;background:#0A5CFF;top:27%;right:21%;--x:8px;--y:-14px;--t:9s;--d:-3s"></i><b class="cp" style="top:9%;right:21%;min-width:38px;height:38px;font-size:.9rem;--t:8s;--d:-2s">11</b><i class="sq" style="top:34%;right:6%;width:34px;height:34px;border-width:2px"></i></div><div class="wrap">
 <h1 class="rv" style="--i:2"><span class="t1">Calcula tu ponderado de</span><span class="t2" id="ctitle"></span></h1>
 <div class="strip"><i style="background:#0A5CFF"></i><i style="background:#00F03C"></i><i style="background:#F000F0"></i><i style="background:#fff"></i></div>
-<div class="wb" id="wbar"></div><div class="lg" id="lgd"></div><div class="zm" id="zm"></div>
+<div class="wp"><div class="wb" id="wbar"></div><div class="lg" id="lgd"></div><div class="zm" id="zm"></div></div>
 </div></section>
 <main class="wrap body">
 <h2 class="it rv" style="--i:3">Ingresa tus notas</h2>
 <section id="tree"></section>
-<section id="sum"><div class="sm1"><div><b id="sl1"></b><div class="mut" id="sl2"></div></div><div id="big"></div></div><div class="pbar"><i id="pf"></i><u id="mk"></u></div><div class="sm2"><span id="pt"></span><label class="minl">Nota mínima <input type="number" id="pm" aria-label="Nota mínima para aprobar" min="0" max="20" step="any" value="11"></label></div></section>
-<p class="tip"><b>TIP:</b> puedes elegir qué nota mínima deseas alcanzar, no solo 11. Cámbiala arriba y la tabla te mostrará qué necesitas sacar.</p>
+<section id="sum"><div class="sm1"><div><b id="sl1"></b><div class="mut" id="sl2"></div></div><div id="big"></div></div><div class="pbar"><i id="pf"></i><u id="mk" role="slider" tabindex="0" aria-label="Nota mínima para aprobar" aria-valuemin="0" aria-valuemax="20"><b id="mkt"></b></u></div><div class="sm2"><span id="pt"></span><label class="minl">Nota mínima <input type="number" id="pm" aria-label="Nota mínima para aprobar" min="0" max="20" step="any" value="11"></label></div></section>
+<p class="tip"><b>TIP:</b> arrastra la línea negra de la barra o escribe la nota mínima que deseas alcanzar, y la tabla te mostrará qué necesitas sacar.</p>
 <section id="cb"></section>
 </main>
 <section class="faq" id="faq"><div class="wrap">
@@ -323,7 +343,7 @@ function setCourse(k){
  $("lgd").innerHTML=G.map((g,i)=>`<span style="--wb:${WB[i][0]}">${g.n}</span>`).join("");
  const zi=G.findIndex(g=>g.ch);
  if(zi>=0){const g=G[zi],L=sl(g),SH=[100,78,56];
-  const lg=g.ch.some(c=>c.ch)||L.some(x=>x.s!==x.n)?`<div class="lg2">${g.ch.map((c,k)=>`<span style="--sh:${SH[k%3]}%">${c.n} ${fmt(c.w)}%</span>`).join("")}</div>`:"";
+  const lg="";
   $("zm").style.cssText=`--wb:${WB[zi][0]};--wc:${WB[zi][1]}`;
   $("zm").innerHTML=`<div class="zl">Dentro de ${g.n}</div><div class="zb" id="zb">${L.map(x=>`<span class="zs" data-id="${x.id}" title="${x.n}" style="flex:${x.w};--sh:${SH[x.k%3]}%">${x.s}</span>`).join("")}</div>${lg}`}
  else $("zm").innerHTML="";
@@ -347,7 +367,7 @@ function update(){
  $("big").textContent=num;$("big").className=col;
  $("mbig").textContent=num;$("mbig").className=col;
  const w=Math.min(100,a/20*100)+"%",m=Math.min(100,S.pm/20*100)+"%",bg=okk?"#00F03C":"#ff5a5f";
- $("pf").style.width=w;$("pf").style.background=bg;$("mk").style.left=m;
+ $("pf").style.width=w;$("pf").style.background=bg;$("mk").style.left=m;$("mk").setAttribute("aria-valuenow",S.pm);$("mkt").textContent=fmt(S.pm);
  $("mpf").style.width=w;$("mpf").style.background=bg;$("mmk").style.left=m;
  $("pt").textContent=`${fmt(a)} de ${S.pm} para aprobar`;
  let cb="";
@@ -383,6 +403,14 @@ document.addEventListener("click",e=>{
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeList()});
 
 $("plist").innerHTML=KS.map((x,i)=>`<button class="rv" style="--i:${i+3};--s:${SC[i%4]}" data-c="${x}" data-p="1"><small>${C[x].pre===""?"Curso":"Nivelación en"}</small>${C[x].n}</button>`).join("")+`<button disabled class="rv" style="--i:${KS.length+3};--s:${SC[KS.length%4]}"><small>Nivelación en</small>Intro. a la Ingeniería <em class="soon">Pronto</em></button>`;
+const pb=document.querySelector("#sum .pbar");let drag=false,raf=0;
+const setPm=v=>{v=Math.max(0,Math.min(20,Math.round(v)));if(v===S.pm)return;S.pm=v;$("pm").value=v;if(!raf)raf=requestAnimationFrame(()=>{raf=0;update()})};
+const fromX=x=>{const r=pb.getBoundingClientRect();return r.width?(x-r.left)/r.width*20:S.pm};
+pb.addEventListener("pointerdown",e=>{drag=true;try{pb.setPointerCapture(e.pointerId)}catch(_){}pb.classList.add("drag");setPm(fromX(e.clientX))});
+pb.addEventListener("pointermove",e=>{if(drag)setPm(fromX(e.clientX))});
+const endDrag=()=>{drag=false;pb.classList.remove("drag")};
+pb.addEventListener("pointerup",endDrag);pb.addEventListener("pointercancel",endDrag);
+$("mk").addEventListener("keydown",e=>{const d={ArrowLeft:-1,ArrowDown:-1,ArrowRight:1,ArrowUp:1}[e.key];if(d){e.preventDefault();setPm(d>0?Math.floor(S.pm)+1:Math.ceil(S.pm)-1)}else if(e.key==="Home"){e.preventDefault();setPm(0)}else if(e.key==="End"){e.preventDefault();setPm(20)}});
 const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.target.id==="sum")sumIn=e.isIntersecting;else faqIn=e.isIntersecting});chk()});
 io.observe($("sum"));io.observe($("faq"));
 const DECO=`<div class="deco" aria-hidden="true"><div class="gw"><div class="gr"></div></div><div class="rg"><i class="ring" style="--d:0s"></i><i class="ring" style="--d:2.3s;--rc:#0A5CFF"></i><i class="ring" style="--d:4.6s;--rc:#F000F0"></i><i class="dash"></i><i class="dash dash2"></i><i class="core">%</i></div><i class="dt d1" style="width:22px;height:22px;background:#00F03C;top:9%;right:11%;--x:-16px;--y:20px;--t:6s"></i><i class="dt d2" style="width:15px;height:15px;background:#0A5CFF;top:34%;right:5%;--x:10px;--y:-24px;--t:8s;--d:-2s"></i><i class="dt d3" style="width:26px;height:26px;background:#F000F0;bottom:14%;right:28%;--x:-12px;--y:-18px;--t:7s;--d:-1s"></i><b class="cp c1" style="top:9%;left:7%;--t:9s">11</b><b class="cp c2" style="top:17%;right:30%;--t:7s;--d:-3s">15</b><b class="cp c3" style="bottom:9%;left:9%;--t:8s;--d:-5s">20</b><i class="sq s1" style="bottom:18%;right:9%"></i></div>`;
