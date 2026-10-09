@@ -309,7 +309,7 @@ function setCourse(k){
 function update(){
  const R=S.root,P=pend(),n=P.length,a=ev(R,full({})),okk=pass(a),num=S.rf?rnd(a):fmt(a),col=okk?"gn":"rd";
  walk(R,c=>{if(!c.ch)return;const hp=leaves(c).some(l=>isP(l.id)),e=$("sv-"+c.id);e.textContent=hp?"Faltan notas":fmt(ev(c,full({})));e.classList.toggle("pn",hp)});
- $("sl1").textContent="Mi promedio hasta ahora";
+ $("sl1").textContent=n?"Mi promedio hasta ahora":"Mi promedio final";
  $("sl2").innerHTML=`<span class="tag ${okk?"y":"n"}">${okk?"Aprobado":"Desaprobado"}</span>`;
  $("big").textContent=num;$("big").className=col;
  $("mbig").textContent=num;$("mbig").className=col;
