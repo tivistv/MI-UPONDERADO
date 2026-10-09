@@ -6,6 +6,7 @@
 <title>Mi UPonderado</title>
 <meta name="description" content="Calcula tu ponderado y mira qué notas necesitas para aprobar en los cursos de nivelación.">
 <meta name="theme-color" content="#061F47">
+<meta name="author" content="@matiastf_">
 <meta property="og:title" content="Mi UPonderado">
 <meta property="og:description" content="Calcula tu ponderado y mira qué notas necesitas para aprobar.">
 <meta property="og:type" content="website">
@@ -178,7 +179,7 @@ footer{border-top:1px solid rgba(255,255,255,.2);padding:28px 0 36px;font-size:.
 @keyframes pulse{from{transform:scale(.92) rotate(-3deg)}to{transform:scale(1.06) rotate(3deg)}}
 #v-pick .core{display:none}
 @media(max-width:700px){
-#v-welcome .wc{display:flex;flex-direction:column;justify-content:flex-end;min-height:100vh;min-height:100svh;padding-bottom:calc(36px + env(safe-area-inset-bottom,0px))}
+#v-welcome .wc{display:flex;flex-direction:column;justify-content:flex-end;min-height:100vh;min-height:100svh;padding-bottom:calc(60px + env(safe-area-inset-bottom,0px))}
 #v-welcome .rg{left:50%;right:auto;top:7%;bottom:auto;transform:translateX(-50%);width:min(88vw,400px)}
 #v-welcome .gw{-webkit-mask-image:radial-gradient(ellipse 95% 60% at 50% 30%,#000 10%,transparent 80%);mask-image:radial-gradient(ellipse 95% 60% at 50% 30%,#000 10%,transparent 80%)}
 #v-welcome .d3{bottom:auto;top:44%;right:30%}
@@ -186,6 +187,18 @@ footer{border-top:1px solid rgba(255,255,255,.2);padding:28px 0 36px;font-size:.
 #v-welcome .s1{bottom:auto;top:42%;right:8%}
 #v-welcome .btn.lg{display:block;width:100%;text-align:center}
 }
+
+.wm{position:absolute;left:0;right:0;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:2;text-align:center;font-size:.68rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.6);text-decoration:none;animation:fade 1.2s 1.4s backwards}
+.wm b,.fw b{color:var(--green);font-weight:800;letter-spacing:.04em;text-transform:none}
+.wm:hover b,.fw a:hover b{text-decoration:underline}
+.fw{margin-top:22px;padding-top:16px;border-top:1px solid rgba(255,255,255,.15);font-size:.72rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.6)}
+.fw a{color:inherit;text-decoration:none}
+
+.wm{display:flex;justify-content:center;align-items:center;gap:7px;font-size:.8rem;letter-spacing:.02em;text-transform:none;color:rgba(255,255,255,.65);transition:color .2s}
+.wm:hover,.fw a:hover{color:var(--green)}
+.fw{font-size:.8rem;letter-spacing:.02em;text-transform:none}
+.fw a{display:inline-flex;align-items:center;gap:7px;transition:color .2s}
+.wm svg,.fw svg{flex:none}
 </style>
 </head>
 <body>
@@ -194,12 +207,14 @@ footer{border-top:1px solid rgba(255,255,255,.2);padding:28px 0 36px;font-size:.
 <h1 class="wt"><span class="t1 rv" style="--i:1">Bienvenido a</span><span class="t2 rv" style="--i:2">Mi <b>UP</b>onderado</span></h1>
 <div class="strip"><i style="background:#0A5CFF"></i><i style="background:#00F03C"></i><i style="background:#F000F0"></i><i style="background:#fff"></i></div>
 <button class="btn lg rv" id="go" style="--i:5">Empezar</button>
-</div></div>
+</div>
+<a class="wm" href="https://www.instagram.com/matiastf_/" target="_blank" rel="noopener" aria-label="Instagram de @matiastf_"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6" fill="currentColor"/></svg><span>@matiastf_</span></a></div>
 
 <div id="v-pick" class="wel" hidden><div class="wrap wc">
 <h1 class="wt eq"><span class="t1 rv" style="--i:0">Elige tu</span><span class="t2 rv" style="--i:1">curso</span></h1>
 <div class="pl" id="plist"></div>
-</div></div>
+</div>
+<a class="wm" href="https://www.instagram.com/matiastf_/" target="_blank" rel="noopener" aria-label="Instagram de @matiastf_"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6" fill="currentColor"/></svg><span>@matiastf_</span></a></div>
 
 <div id="v-tool" hidden>
 <div class="bar"><div class="wrap hd1"><button class="logo lb" id="home" aria-label="Volver al inicio"><i class="mark">%</i>Mi <b>UP</b>onderado</button><a class="btn" href="#faq">Cómo funciona</a></div></div>
@@ -224,7 +239,7 @@ footer{border-top:1px solid rgba(255,255,255,.2);padding:28px 0 36px;font-size:.
 <details class="qa"><summary><span class="no">03</span><span class="q">¿Qué significa "Por rendir"?</span><i class="pm"></i></summary><div class="ans"><p>Es una evaluación que aún no has dado. Si la dejas en blanco, cuenta como 0 en "Mi promedio hasta ahora" y la página calcula qué necesitas sacar en ella. Si escribes un 0, cuenta como una nota ya rendida.</p></div></details>
 <details class="qa"><summary><span class="no">04</span><span class="q">¿Es una herramienta oficial?</span><i class="pm"></i></summary><div class="ans"><p>No. Es una calculadora para planificar tus notas. El resultado oficial es el que publica la universidad.</p></div></details>
 </div></section>
-<footer><div class="wrap fc"><div><span class="logo">Mi <b>UP</b>onderado</span><p>Herramienta no oficial. Los pesos y reglas salen de los reglamentos de cada curso; si algo no coincide, vale lo que indique tu profesor o la universidad.</p></div><div class="fl" id="fl"></div></div></footer>
+<footer><div class="wrap fc"><div><span class="logo">Mi <b>UP</b>onderado</span><p>Herramienta no oficial. Los pesos y reglas salen de los reglamentos de cada curso; si algo no coincide, vale lo que indique tu profesor o la universidad.</p></div><div class="fl" id="fl"></div></div><div class="wrap fw"><a href="https://www.instagram.com/matiastf_/" target="_blank" rel="noopener" aria-label="Instagram de @matiastf_"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6" fill="currentColor"/></svg><span>@matiastf_</span></a></div></footer>
 </div>
 
 <div id="mini" aria-hidden="true"><span class="ml">Mi promedio hasta ahora</span><i class="mb"><span id="mpf"></span><span id="mmk"></span></i><b id="mbig"></b></div>
