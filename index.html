@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mi UPonderado</title>
-<meta name="description" content="Calcula tu ponderado y mira qué notas necesitas para aprobar en los cursos de nivelación.">
+<meta name="description" content="Calcula tu ponderado y mira qué notas necesitas para aprobar ">
 <meta name="theme-color" content="#061F47">
 <meta name="author" content="@matiastf_">
 <meta property="og:title" content="Mi UPonderado">
@@ -264,7 +264,10 @@ len:{n:"Lenguaje",i:"Las prácticas PC1, PC2 y PC3 valen lo mismo y se promedian
 inf:{n:"Informática",i:"La Nota de Trabajo mezcla PC1 (35%), PC2 (45%) y el promedio de 3 controles (20%), y se redondea al entero antes de entrar al promedio final.",root:{ch:[
  {id:"nt",n:"Nota de Trabajo",w:35,r:1,ch:[{id:"pc1",n:"PC1",w:35},{id:"pc2",n:"PC2",w:45},
   {id:"co",n:"Promedio de Controles",w:20,ch:[{id:"c1",n:"Control 1",w:T},{id:"c2",n:"Control 2",w:T},{id:"c3",n:"Control 3",w:T}]}]},
- {id:"pa",n:"Examen Parcial",w:30},{id:"fi",n:"Examen Final",w:35}]}}
+ {id:"pa",n:"Examen Parcial",w:30},{id:"fi",n:"Examen Final",w:35}]}},
+con:{n:"Fundamentos de Contabilidad",pre:"",i:"La Nota de Práctica pesa 40% y se arma con las 5 PCs (70%), los 2 CLs (25%) y la participación en clase o AEC (5%). El parcial y el final pesan 30% cada uno. No se indican redondeos.",root:{ch:[
+ {id:"np",n:"Nota de Práctica",w:40,ch:[{id:"pc1",n:"PC1",w:14},{id:"pc2",n:"PC2",w:14},{id:"pc3",n:"PC3",w:14},{id:"pc4",n:"PC4",w:14},{id:"pc5",n:"PC5",w:14},{id:"cl1",n:"CL1",w:12.5},{id:"cl2",n:"CL2",w:12.5},{id:"aec",n:"Participación (AEC)",w:5}]},
+ {id:"pa",n:"Examen Parcial",w:30},{id:"fi",n:"Examen Final",w:30}]}}
 };
 const KS=Object.keys(C),ST={};let cur,S,idx,view="welcome",sumIn=false,faqIn=false;
 const walk=(n,f,d=0)=>(n.ch||[]).forEach(c=>{f(c,d);walk(c,f,d+1)});
@@ -285,12 +288,12 @@ function closeList(){$("clist").hidden=true;$("cbtn").setAttribute("aria-expande
 function setCourse(k){
  cur=k;S=ST[k]||(ST[k]={root:clone(C[k].root),g:{},rf:false,pm:11});
  idx={};walk(S.root,c=>idx[c.id]=c);
- $("cval").textContent="Nivelación en "+C[k].n;
- $("cbtn").style.setProperty("--s",SC[KS.indexOf(k)]);
- $("clist").innerHTML=KS.map(x=>`<button role="option" data-c="${x}" class="${x===k?"on":""}"><small>Nivelación en</small>${C[x].n}</button>`).join("")+soon;
+ $("cval").textContent=(C[k].pre??"Nivelación en ")+C[k].n;
+ $("cbtn").style.setProperty("--s",SC[KS.indexOf(k)%4]);
+ $("clist").innerHTML=KS.map(x=>`<button role="option" data-c="${x}" class="${x===k?"on":""}"><small>${C[x].pre===""?"Curso":"Nivelación en"}</small>${C[x].n}</button>`).join("")+soon;
  closeList();
- $("ctitle").textContent="Nivelación en "+C[k].n;
- $("fl").innerHTML=`<b>Cursos</b>`+KS.map(x=>`<button data-c="${x}" data-f="1">Nivelación en ${C[x].n}</button>`).join("");
+ $("ctitle").textContent=(C[k].pre??"Nivelación en ")+C[k].n;
+ $("fl").innerHTML=`<b>Cursos</b>`+KS.map(x=>`<button data-c="${x}" data-f="1">${C[x].pre??"Nivelación en "}${C[x].n}</button>`).join("");
  const G=S.root.ch;
  $("wbar").innerHTML=G.map((g,i)=>`<span style="flex:${g.w};--wb:${WB[i][0]};--wc:${WB[i][1]}">${fmt(g.w)}%</span>`).join("");
  $("lgd").innerHTML=G.map((g,i)=>`<span style="--wb:${WB[i][0]}">${g.n}</span>`).join("");
@@ -348,7 +351,7 @@ document.addEventListener("click",e=>{
  else if(b.id==="rs"){ST[cur]=null;setCourse(cur)}});
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeList()});
 
-$("plist").innerHTML=KS.map((x,i)=>`<button class="rv" style="--i:${i+3};--s:${SC[i]}" data-c="${x}" data-p="1"><small>Nivelación en</small>${C[x].n}</button>`).join("")+`<button disabled class="rv" style="--i:6;--s:${SC[3]}"><small>Nivelación en</small>Intro. a la Ingeniería <em class="soon">Pronto</em></button>`;
+$("plist").innerHTML=KS.map((x,i)=>`<button class="rv" style="--i:${i+3};--s:${SC[i%4]}" data-c="${x}" data-p="1"><small>${C[x].pre===""?"Curso":"Nivelación en"}</small>${C[x].n}</button>`).join("")+`<button disabled class="rv" style="--i:${KS.length+3};--s:${SC[KS.length%4]}"><small>Nivelación en</small>Intro. a la Ingeniería <em class="soon">Pronto</em></button>`;
 const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.target.id==="sum")sumIn=e.isIntersecting;else faqIn=e.isIntersecting});chk()});
 io.observe($("sum"));io.observe($("faq"));
 const DECO=`<div class="deco" aria-hidden="true"><div class="gw"><div class="gr"></div></div><div class="rg"><i class="ring" style="--d:0s"></i><i class="ring" style="--d:2.3s;--rc:#0A5CFF"></i><i class="ring" style="--d:4.6s;--rc:#F000F0"></i><i class="dash"></i><i class="dash dash2"></i><i class="core">%</i></div><i class="dt d1" style="width:22px;height:22px;background:#00F03C;top:9%;right:11%;--x:-16px;--y:20px;--t:6s"></i><i class="dt d2" style="width:15px;height:15px;background:#0A5CFF;top:34%;right:5%;--x:10px;--y:-24px;--t:8s;--d:-2s"></i><i class="dt d3" style="width:26px;height:26px;background:#F000F0;bottom:14%;right:28%;--x:-12px;--y:-18px;--t:7s;--d:-1s"></i><b class="cp c1" style="top:9%;left:7%;--t:9s">11</b><b class="cp c2" style="top:17%;right:30%;--t:7s;--d:-3s">15</b><b class="cp c3" style="bottom:9%;left:9%;--t:8s;--d:-5s">20</b><i class="sq s1" style="bottom:18%;right:9%"></i></div>`;
