@@ -88,7 +88,7 @@ h2{font:800 1.2rem/1.2 Montserrat,Arial,sans-serif;text-transform:uppercase;colo
 .bn b{font-weight:800;text-transform:uppercase;font-size:.88rem;letter-spacing:.02em;color:var(--ink)}
 .bb{padding:0 16px 8px}
 .row{display:grid;grid-template-columns:minmax(0,1fr) 120px;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
-.row.grp{font-weight:700}
+.row.grp,.row.bd{font-weight:700}
 .nm{padding-left:calc(var(--d,0)*16px);color:var(--ink)}
 .nm em{font-style:normal;color:var(--mut);font-size:.8rem;font-weight:500;margin-left:8px}
 .sv{font-variant-numeric:tabular-nums;text-align:right;font-weight:800;color:var(--ink);padding-right:4px}
@@ -203,6 +203,19 @@ footer{border-top:1px solid rgba(255,255,255,.2);padding:28px 0 36px;font-size:.
 #big.na{color:var(--mut)}#mbig.na{color:rgba(255,255,255,.6)}
 .fl a.ig{display:inline-flex;align-items:center;gap:8px;color:var(--green);font-weight:700;text-decoration:none;padding:4px 0}
 .fl a.ig:hover{text-decoration:underline}
+.tip{margin:12px 0 0;padding-left:12px;border-left:3px solid var(--green);font-size:.85rem;color:var(--mut)}
+.tip b{color:var(--ink);letter-spacing:.04em}
+.wb span{position:relative}
+.wb span::after{content:"";position:absolute;left:0;bottom:0;height:5px;width:var(--f,0%);background:var(--wc);transition:width .35s ease}
+.zm{margin-top:16px}
+.zm:empty{display:none}
+.zl{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.72)}
+.zl::before{content:"";width:8px;height:8px;background:var(--wb)}
+.zb{display:flex;gap:2px;height:30px}
+.zs{display:flex;align-items:center;justify-content:center;min-width:0;overflow:hidden;white-space:nowrap;font-size:.7rem;font-weight:800;color:var(--wc);background:color-mix(in srgb,var(--wb) var(--sh),#061F47);transform-origin:left;animation:grow .7s .9s cubic-bezier(.2,.7,.2,1) backwards}
+.zs.pd{background:repeating-linear-gradient(135deg,rgba(255,255,255,.2) 0 3px,transparent 3px 7px),rgba(255,255,255,.07);color:rgba(255,255,255,.7);box-shadow:inset 0 0 0 1px rgba(255,255,255,.28)}
+.lg2{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:10px;font-size:.72rem;font-weight:600;color:rgba(255,255,255,.8)}
+.lg2 span::before{content:"";display:inline-block;width:10px;height:10px;margin-right:7px;background:color-mix(in srgb,var(--wb) var(--sh),#061F47)}
 </style>
 <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
 <script defer src="/_vercel/insights/script.js"></script>
@@ -230,12 +243,13 @@ footer{border-top:1px solid rgba(255,255,255,.2);padding:28px 0 36px;font-size:.
 <section class="hero"><div class="wrap">
 <h1 class="rv" style="--i:2"><span class="t1">Calcula tu ponderado de</span><span class="t2" id="ctitle"></span></h1>
 <div class="strip"><i style="background:#0A5CFF"></i><i style="background:#00F03C"></i><i style="background:#F000F0"></i><i style="background:#fff"></i></div>
-<div class="wb" id="wbar"></div><div class="lg" id="lgd"></div>
+<div class="wb" id="wbar"></div><div class="lg" id="lgd"></div><div class="zm" id="zm"></div>
 </div></section>
 <main class="wrap body">
 <h2 class="it rv" style="--i:3">Ingresa tus notas</h2>
 <section id="tree"></section>
 <section id="sum"><div class="sm1"><div><b id="sl1"></b><div class="mut" id="sl2"></div></div><div id="big"></div></div><div class="pbar"><i id="pf"></i><u id="mk"></u></div><div class="sm2"><span id="pt"></span><label class="minl">Nota mínima <input type="number" id="pm" aria-label="Nota mínima para aprobar" min="0" max="20" step="any" value="11"></label></div></section>
+<p class="tip"><b>TIP:</b> puedes elegir qué nota mínima deseas alcanzar, no solo 11. Cámbiala arriba y la tabla te mostrará qué necesitas sacar.</p>
 <section id="cb"></section>
 </main>
 <section class="faq" id="faq"><div class="wrap">
@@ -263,10 +277,13 @@ len:{n:"Lenguaje",i:"Las prácticas PC1, PC2 y PC3 valen lo mismo y se promedian
  {id:"pa",n:"Examen Parcial",w:30},{id:"fi",n:"Examen Final",w:30}]}},
 inf:{n:"Informática",i:"La Nota de Trabajo mezcla PC1 (35%), PC2 (45%) y el promedio de 3 controles (20%), y se redondea al entero antes de entrar al promedio final.",root:{ch:[
  {id:"nt",n:"Nota de Trabajo",w:35,r:1,ch:[{id:"pc1",n:"PC1",w:35},{id:"pc2",n:"PC2",w:45},
-  {id:"co",n:"Promedio de Controles",w:20,ch:[{id:"c1",n:"Control 1",w:T},{id:"c2",n:"Control 2",w:T},{id:"c3",n:"Control 3",w:T}]}]},
+  {id:"co",n:"Promedio de Controles",w:20,ch:[{id:"c1",n:"Control 1",s:"C1",w:T},{id:"c2",n:"Control 2",s:"C2",w:T},{id:"c3",n:"Control 3",s:"C3",w:T}]}]},
  {id:"pa",n:"Examen Parcial",w:30},{id:"fi",n:"Examen Final",w:35}]}},
-con:{n:"Fundamentos de Contabilidad",pre:"",i:"La Nota de Práctica pesa 40% y se arma con las 5 PCs (70%), los 2 CLs (25%) y la participación en clase o AEC (5%). El parcial y el final pesan 30% cada uno. No se indican redondeos.",root:{ch:[
- {id:"np",n:"Nota de Práctica",w:40,ch:[{id:"pc1",n:"PC1",w:14},{id:"pc2",n:"PC2",w:14},{id:"pc3",n:"PC3",w:14},{id:"pc4",n:"PC4",w:14},{id:"pc5",n:"PC5",w:14},{id:"cl1",n:"CL1",w:12.5},{id:"cl2",n:"CL2",w:12.5},{id:"aec",n:"Participación (AEC)",w:5}]},
+con:{n:"Fundamentos de Contabilidad",pre:"",i:"Trabajos pesa 40% y se arma con Controles de Lectura (25%), Prácticas Calificadas (70%) y Participación (5%). El parcial y el final pesan 30% cada uno. No se indican redondeos.",root:{ch:[
+ {id:"tr",n:"Trabajos",w:40,ch:[
+  {id:"pc",n:"Prácticas Calificadas",w:70,ch:[{id:"pc1",n:"PC1",w:20},{id:"pc2",n:"PC2",w:20},{id:"pc3",n:"PC3",w:20},{id:"pc4",n:"PC4",w:20},{id:"pc5",n:"PC5",w:20}]},
+  {id:"cl",n:"Controles de Lectura",w:25,ch:[{id:"cl1",n:"CL1",w:50},{id:"cl2",n:"CL2",w:50}]},
+  {id:"ap",n:"Participación",s:"P",w:5,b:1}]},
  {id:"pa",n:"Examen Parcial",w:30},{id:"fi",n:"Examen Final",w:30}]}}
 };
 const KS=Object.keys(C),ST={};let cur,S,idx,view="welcome",sumIn=false,faqIn=false;
@@ -278,9 +295,16 @@ const full=o=>{const v={};leaves(S.root).forEach(l=>v[l.id]=isP(l.id)?(o[l.id]??
 const ev=(n,v)=>{const x=n.ch?n.ch.reduce((s,c)=>s+ev(c,v)*(+c.w||0)/100,0):v[n.id];return n.r?rnd(x):x};
 const pass=a=>(S.rf?rnd(a):a)>=S.pm-1e-9;
 const inp=c=>`<input class="g" data-id="${c.id}" type="number" inputmode="decimal" min="0" max="20" step="any" placeholder="Por rendir" aria-label="Nota de ${c.n}" value="${S.g[c.id]??""}">`;
-const row=(c,d)=>`<div class="row${c.ch?" grp":""}" style="--d:${d}"><span class="nm">${c.n}<em>${fmt(c.w)}%</em></span>${c.ch?`<span class="sv" id="sv-${c.id}">—</span>`:inp(c)}</div>`;
+const row=(c,d)=>`<div class="row${c.ch?" grp":""}${c.b?" bd":""}" style="--d:${d}"><span class="nm">${c.n}<em>${fmt(c.w)}%</em></span>${c.ch?`<span class="sv" id="sv-${c.id}">—</span>`:inp(c)}</div>`;
 const soon=`<button disabled><small>Nivelación en</small>Intro. a la Ingeniería <em class="soon">Pronto</em></button>`;
 
+const sl=g=>{const o=[];const rec=(n,sh,k)=>{if(!n.ch){o.push({id:n.id,n:n.n,s:n.s||n.n,w:sh,k});return}const t=n.ch.reduce((a,x)=>a+(+x.w||0),0)||100;n.ch.forEach(x=>rec(x,sh*(+x.w||0)/t,k))};
+ const t0=g.ch.reduce((a,x)=>a+(+x.w||0),0)||100;g.ch.forEach((c,k)=>rec(c,(+c.w||0)/t0*100,k));return o};
+function paintBars(){
+ S.root.ch.forEach((g,i)=>{const e=document.querySelector(`#wbar span[data-i="${i}"]`);if(!e)return;
+  let f;if(g.ch){const L=sl(g),t=L.reduce((a,x)=>a+x.w,0)||1;f=L.filter(x=>!isP(x.id)).reduce((a,x)=>a+x.w,0)/t*100}else f=isP(g.id)?0:100;
+  e.style.setProperty("--f",f+"%")});
+ document.querySelectorAll("#zb .zs").forEach(e=>e.classList.toggle("pd",isP(e.dataset.id)))}
 const chk=()=>$("mini").classList.toggle("on",view==="tool"&&!sumIn&&!faqIn);
 function showView(v){view=v;["welcome","pick","tool"].forEach(x=>$("v-"+x).hidden=x!==v);window.scrollTo({top:0,behavior:"instant"});chk()}
 function closeList(){$("clist").hidden=true;$("cbtn").setAttribute("aria-expanded","false")}
@@ -295,8 +319,14 @@ function setCourse(k){
  $("ctitle").textContent=(C[k].pre??"Nivelación en ")+C[k].n;
  $("fl").innerHTML=`<b>Cursos</b>`+KS.map(x=>`<button data-c="${x}" data-f="1">${C[x].pre??"Nivelación en "}${C[x].n}</button>`).join("");
  const G=S.root.ch;
- $("wbar").innerHTML=G.map((g,i)=>`<span style="flex:${g.w};--wb:${WB[i][0]};--wc:${WB[i][1]}">${fmt(g.w)}%</span>`).join("");
+ $("wbar").innerHTML=G.map((g,i)=>`<span data-i="${i}" style="flex:${g.w};--wb:${WB[i][0]};--wc:${WB[i][1]}">${fmt(g.w)}%</span>`).join("");
  $("lgd").innerHTML=G.map((g,i)=>`<span style="--wb:${WB[i][0]}">${g.n}</span>`).join("");
+ const zi=G.findIndex(g=>g.ch);
+ if(zi>=0){const g=G[zi],L=sl(g),SH=[100,78,56];
+  const lg=g.ch.some(c=>c.ch)||L.some(x=>x.s!==x.n)?`<div class="lg2">${g.ch.map((c,k)=>`<span style="--sh:${SH[k%3]}%">${c.n} ${fmt(c.w)}%</span>`).join("")}</div>`:"";
+  $("zm").style.cssText=`--wb:${WB[zi][0]};--wc:${WB[zi][1]}`;
+  $("zm").innerHTML=`<div class="zl">Dentro de ${g.n}</div><div class="zb" id="zb">${L.map(x=>`<span class="zs" data-id="${x.id}" title="${x.n}" style="flex:${x.w};--sh:${SH[x.k%3]}%">${x.s}</span>`).join("")}</div>${lg}`}
+ else $("zm").innerHTML="";
  let h="";
  G.forEach((g,i)=>{h+=`<div class="blk rv" style="--i:${i+4}"><div class="bh"><div class="bn"><span class="pct">${fmt(g.w)}%</span><b>${g.n}</b></div>${g.ch?`<span class="sv" id="sv-${g.id}">—</span>`:inp(g)}</div>`;
   if(g.ch){h+=`<div class="bb">`;walk(g,(c,d)=>{h+=row(c,d)});h+=`</div>`}
@@ -331,6 +361,7 @@ function update(){
   cb=okk?`<p class="msg">Ya aprobaste: aunque saques 0 en lo que falta, llegas a ${S.pm}.</p>`:!rows.length?`<p class="msg bad">Ni con 20 en todo lo que falta llegarías a ${S.pm}.</p>`:`<h2>Combinaciones posibles para aprobar</h2><div class="sc"><table>${hdr}${rows.join("")}</table></div>`;
  }
  $("cb").innerHTML=cb;
+ paintBars();
 }
 
 const h=e=>{const t=e.target,id=t.dataset.id;
