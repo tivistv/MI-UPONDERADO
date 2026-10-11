@@ -259,11 +259,11 @@ footer{border-top:1px solid rgba(255,255,255,.2);padding:28px 0 36px;font-size:.
 .mnt-pl{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;font-size:.6rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.68)}
 .mnt-pl b{font-size:1.05rem;font-weight:900;letter-spacing:0;color:var(--green)}
 .mnt-tr{position:relative;height:6px;border-radius:99px;background:rgba(255,255,255,.12)}
-.mnt-fl{position:absolute;left:0;top:0;bottom:0;width:80%;border-radius:99px;background:var(--green);box-shadow:0 0 14px rgba(0,240,60,.65);animation:mntg 2.4s cubic-bezier(.2,.7,.2,1) .6s backwards}
+.mnt-fl{position:absolute;left:0;top:0;bottom:0;width:87%;border-radius:99px;background:var(--green);box-shadow:0 0 14px rgba(0,240,60,.65);animation:mntg 2.4s cubic-bezier(.2,.7,.2,1) .6s backwards}
 .mnt-fl i{position:absolute;inset:0;border-radius:99px;overflow:hidden}
 .mnt-fl i:after{content:"";position:absolute;top:0;bottom:0;width:60px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent);transform:translateX(-80px);animation:mnts 2.8s ease-in-out 3.2s infinite}
 .mnt-fl:after{content:"";position:absolute;right:-4px;top:50%;width:10px;height:10px;margin-top:-5px;border-radius:50%;background:#fff;box-shadow:0 0 0 3px rgba(0,240,60,.35),0 0 16px 2px var(--green)}
-@keyframes mntg{from{width:0}to{width:80%}}
+@keyframes mntg{from{width:0}to{width:87%}}
 @keyframes mnts{0%{transform:translateX(-80px)}60%,100%{transform:translateX(420px)}}
 .mnt-sc{display:flex;justify-content:space-between;margin-top:9px;font-size:.56rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.45)}
 .mnt-th{display:block;font-size:.8rem;font-weight:600;letter-spacing:.03em;color:#9fb0cf;margin-bottom:18px}
@@ -283,8 +283,8 @@ footer{border-top:1px solid rgba(255,255,255,.2);padding:28px 0 36px;font-size:.
 <span class="logo"><i class="mark">%</i>Mi <b>UP</b>onderado</span><br>
 <h2 id="mnt-t"><span>Estamos preparando</span><span><b>algo mejor.</b></span></h2>
 <p id="mnt-d">Mi UPonderado está evolucionando. Estamos trabajando en una nueva versión para que calcular tu ponderado sea más fácil y rápido. La página sigue activa y volvemos muy pronto.</p>
-<div class="mnt-pr"><div class="mnt-pl"><span>Avance de las mejoras</span><b id="mnt-n">80%</b></div>
-<div class="mnt-tr" role="progressbar" aria-label="Avance de las mejoras" aria-valuemin="0" aria-valuemax="100" aria-valuenow="80"><div class="mnt-fl"><i></i></div></div>
+<div class="mnt-pr"><div class="mnt-pl"><span>Avance de las mejoras</span><b id="mnt-n">87%</b></div>
+<div class="mnt-tr" role="progressbar" aria-label="Avance de las mejoras" aria-valuemin="0" aria-valuemax="100" aria-valuenow="87"><div class="mnt-fl"><i></i></div></div>
 <div class="mnt-sc" aria-hidden="true"><span>Inicio</span><span>Listo</span></div></div>
 <span class="mnt-th">Gracias por tu comprensión</span>
 <div class="mnt-ig"><a href="https://www.instagram.com/matiastf_/" target="_blank" rel="noopener" aria-label="Instagram de @matiastf_"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6" fill="currentColor"/></svg><span>@matiastf_</span></a><a href="https://www.instagram.com/fabi_mvi/" target="_blank" rel="noopener" aria-label="Instagram de @fabi_mvi"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6" fill="currentColor"/></svg><span>@fabi_mvi</span></a></div>
@@ -485,7 +485,7 @@ var n=document.getElementById('mnt-n');
 if(n&&!window.matchMedia('(prefers-reduced-motion:reduce)').matches){
 var t0=null,d=2400,delay=600;n.textContent='0%';
 (function f(ts){if(t0===null)t0=ts;var p=Math.min(Math.max((ts-t0-delay)/d,0),1);
-n.textContent=Math.round(80*(1-Math.pow(1-p,3)))+'%';if(p<1)requestAnimationFrame(f);})(performance.now());
+n.textContent=Math.round(87*(1-Math.pow(1-p,3)))+'%';if(p<1)requestAnimationFrame(f);})(performance.now());
 }
 })();
 </script>
