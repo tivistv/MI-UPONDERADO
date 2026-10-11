@@ -236,11 +236,62 @@ footer{border-top:1px solid rgba(255,255,255,.2);padding:28px 0 36px;font-size:.
 #mk:focus-visible::after{box-shadow:0 0 0 3px var(--blue)}
 #mkt{position:absolute;left:50%;bottom:calc(100% + 2px);transform:translateX(-50%) scale(.9);opacity:0;background:var(--ink);color:var(--card);font:800 .8rem/1 Montserrat,Arial,sans-serif;padding:5px 8px;border-radius:4px;pointer-events:none;white-space:nowrap;transition:opacity .15s,transform .15s}
 .pbar.drag #mkt,#mk:hover #mkt,#mk:focus-visible #mkt{opacity:1;transform:translateX(-50%) scale(1)}
+
+/* ===== Modo mantenimiento (overlay) ===== */
+#mnt{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;padding:calc(20px + env(safe-area-inset-top,0px)) 20px calc(20px + env(safe-area-inset-bottom,0px));background:rgba(6,31,71,.94);animation:fade .8s both;overflow:auto;isolation:isolate}
+@supports((-webkit-backdrop-filter:blur(1px)) or (backdrop-filter:blur(1px))){#mnt{background:rgba(6,31,71,.5);-webkit-backdrop-filter:blur(16px) saturate(1.15);backdrop-filter:blur(16px) saturate(1.15);animation:mntb 1.2s ease both}}
+@keyframes mntb{from{background:rgba(6,31,71,0);-webkit-backdrop-filter:blur(0);backdrop-filter:blur(0)}to{background:rgba(6,31,71,.5);-webkit-backdrop-filter:blur(16px) saturate(1.15);backdrop-filter:blur(16px) saturate(1.15)}}
+#mnt:before,#mnt:after{content:"";position:fixed;z-index:-1;width:60vmax;height:60vmax;border-radius:50%;filter:blur(70px);opacity:.28;pointer-events:none;animation:mntf 14s ease-in-out infinite alternate}
+#mnt:before{left:-20vmax;bottom:-25vmax;background:radial-gradient(circle,#00F03C,transparent 65%)}
+#mnt:after{right:-22vmax;top:-28vmax;background:radial-gradient(circle,#0A5CFF,transparent 65%);animation-delay:-6s}
+@keyframes mntf{from{transform:translate(0,0) scale(1)}to{transform:translate(4vmax,-3vmax) scale(1.12)}}
+.mnt-card{position:relative;width:100%;max-width:540px;margin:auto;text-align:center;color:#fff;border-radius:24px;overflow:hidden;background:linear-gradient(160deg,rgba(13,33,69,.78),rgba(6,31,71,.62));border:1px solid rgba(0,240,60,.45);box-shadow:0 0 0 1px rgba(0,240,60,.08),0 0 48px rgba(0,240,60,.13),0 30px 80px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.08);animation:mntc 1s cubic-bezier(.2,.7,.2,1) .25s backwards}
+@supports((-webkit-backdrop-filter:blur(1px)) or (backdrop-filter:blur(1px))){.mnt-card{-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px)}}
+@keyframes mntc{from{opacity:0;transform:translateY(18px) scale(.97)}to{opacity:1;transform:none}}
+.mnt-top{display:flex;height:3px}.mnt-top i{flex:1}
+.mnt-in{padding:38px 40px 32px}
+.mnt-card .logo{display:inline-flex;align-items:center;font-size:.95rem;margin-bottom:30px}
+.mnt-card h2{color:#fff;margin:0 0 16px;font-weight:900;text-transform:uppercase;line-height:1.02;letter-spacing:-.005em;font-size:clamp(1.7rem,6.4vw,2.6rem)}
+.mnt-card h2 span{display:block}
+.mnt-card h2 b{color:var(--green);text-shadow:0 0 28px rgba(0,240,60,.35)}
+.mnt-card p{margin:0 auto 30px;max-width:420px;font-size:.92rem;line-height:1.6;color:rgba(255,255,255,.84)}
+.mnt-pr{max-width:360px;margin:0 auto 26px}
+.mnt-pl{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;font-size:.6rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.68)}
+.mnt-pl b{font-size:1.05rem;font-weight:900;letter-spacing:0;color:var(--green)}
+.mnt-tr{position:relative;height:6px;border-radius:99px;background:rgba(255,255,255,.12)}
+.mnt-fl{position:absolute;left:0;top:0;bottom:0;width:80%;border-radius:99px;background:var(--green);box-shadow:0 0 14px rgba(0,240,60,.65);animation:mntg 2.4s cubic-bezier(.2,.7,.2,1) .6s backwards}
+.mnt-fl i{position:absolute;inset:0;border-radius:99px;overflow:hidden}
+.mnt-fl i:after{content:"";position:absolute;top:0;bottom:0;width:60px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent);transform:translateX(-80px);animation:mnts 2.8s ease-in-out 3.2s infinite}
+.mnt-fl:after{content:"";position:absolute;right:-4px;top:50%;width:10px;height:10px;margin-top:-5px;border-radius:50%;background:#fff;box-shadow:0 0 0 3px rgba(0,240,60,.35),0 0 16px 2px var(--green)}
+@keyframes mntg{from{width:0}to{width:80%}}
+@keyframes mnts{0%{transform:translateX(-80px)}60%,100%{transform:translateX(420px)}}
+.mnt-sc{display:flex;justify-content:space-between;margin-top:9px;font-size:.56rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.45)}
+.mnt-th{display:block;font-size:.8rem;font-weight:600;letter-spacing:.03em;color:#9fb0cf;margin-bottom:18px}
+.mnt-ig{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+.mnt-ig a{display:inline-flex;align-items:center;gap:7px;color:#fff;text-decoration:none;font-weight:700;font-size:.72rem;letter-spacing:.03em;padding:8px 14px;border-radius:999px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);transition:background .2s,border-color .2s}
+.mnt-ig a:hover{background:rgba(0,240,60,.12);border-color:rgba(0,240,60,.6)}
+@media(max-width:520px){.mnt-in{padding:30px 22px 26px}.mnt-card{border-radius:20px}}
 </style>
 <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
 <script defer src="/_vercel/insights/script.js"></script>
 </head>
 <body>
+<div id="mnt" role="dialog" aria-modal="true" aria-labelledby="mnt-t" aria-describedby="mnt-d">
+<div class="mnt-card">
+<div class="mnt-top" aria-hidden="true"><i style="background:#0A5CFF"></i><i style="background:#00F03C"></i><i style="background:#F000F0"></i><i style="background:#fff"></i></div>
+<div class="mnt-in">
+<span class="logo"><i class="mark">%</i>Mi <b>UP</b>onderado</span><br>
+<h2 id="mnt-t"><span>Estamos preparando</span><span><b>algo mejor.</b></span></h2>
+<p id="mnt-d">Mi UPonderado está evolucionando. Estamos trabajando en una nueva versión para que calcular tu ponderado sea más fácil y rápido. La página sigue activa y volvemos muy pronto.</p>
+<div class="mnt-pr"><div class="mnt-pl"><span>Avance de las mejoras</span><b id="mnt-n">80%</b></div>
+<div class="mnt-tr" role="progressbar" aria-label="Avance de las mejoras" aria-valuemin="0" aria-valuemax="100" aria-valuenow="80"><div class="mnt-fl"><i></i></div></div>
+<div class="mnt-sc" aria-hidden="true"><span>Inicio</span><span>Listo</span></div></div>
+<span class="mnt-th">Gracias por tu comprensión</span>
+<div class="mnt-ig"><a href="https://www.instagram.com/matiastf_/" target="_blank" rel="noopener" aria-label="Instagram de @matiastf_"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6" fill="currentColor"/></svg><span>@matiastf_</span></a><a href="https://www.instagram.com/fabi_mvi/" target="_blank" rel="noopener" aria-label="Instagram de @fabi_mvi"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6" fill="currentColor"/></svg><span>@fabi_mvi</span></a></div>
+</div>
+</div>
+</div>
+
 
 <div id="v-welcome" class="wel"><div class="wrap wc">
 <h1 class="wt"><span class="t1 rv" style="--i:1">Bienvenido a</span><span class="t2 rv" style="--i:2">Mi <b>UP</b>onderado</span></h1>
@@ -417,6 +468,26 @@ const DECO=`<div class="deco" aria-hidden="true"><div class="gw"><div class="gr"
 document.querySelectorAll(".wel").forEach(el=>el.insertAdjacentHTML("afterbegin",DECO));
 setCourse("mat");
 showView("welcome");
+</script>
+<script>
+/* Modo mantenimiento: pon false para reabrir la página */
+(function(){
+var MANTENIMIENTO=true;
+var o=document.getElementById('mnt');
+if(!o)return;
+if(!MANTENIMIENTO){o.remove();return;}
+Array.prototype.forEach.call(document.body.children,function(el){
+if(el!==o&&el.tagName!=='SCRIPT'){el.setAttribute('inert','');el.setAttribute('aria-hidden','true');}
+});
+document.documentElement.style.overflow='hidden';
+document.body.style.overflow='hidden';
+var n=document.getElementById('mnt-n');
+if(n&&!window.matchMedia('(prefers-reduced-motion:reduce)').matches){
+var t0=null,d=2400,delay=600;n.textContent='0%';
+(function f(ts){if(t0===null)t0=ts;var p=Math.min(Math.max((ts-t0-delay)/d,0),1);
+n.textContent=Math.round(80*(1-Math.pow(1-p,3)))+'%';if(p<1)requestAnimationFrame(f);})(performance.now());
+}
+})();
 </script>
 </body>
 </html>
