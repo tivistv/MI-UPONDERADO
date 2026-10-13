@@ -1,18 +1,144 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+<!--
+=====================================================================
+MY PONDERUP  (por @matiastf_ y @fabi_mvi)  -  NOTAS PARA QUIEN EDITE ESTE ARCHIVO
+=====================================================================
+Este comentario no se ve en la web. Resume todo lo que se le explico a Claude para armarla,
+asi que otro chat o persona puede continuar sin volver a pasar la informacion.
+
+0) ESTADO ACTUAL DEL FACTOR DE INSCRIPCION: OCULTO
+  La seccion de FI esta terminada pero DESACTIVADA a pedido del autor (falta mejorarla). Nadie la ve ni puede abrirla.
+  Todo su codigo (HTML de #v-fi, CSS, JavaScript) y sus datos (planes de las 12 carreras, bonificaciones, reglas) siguen aqui.
+  Para ACTIVARLA: en el JavaScript cambiar  const FI_ACTIVO=false;  por  true.  Eso muestra el boton "Calcular mi FI"
+  (pantalla de eleccion, lista de cursos y pie) y cambia el titulo a "Elige tu cálculo".
+  Opcional al activar: cambiar los dos meta description (description y og:description) por
+  "Calcula tu ponderado, mira qué notas necesitas para aprobar y calcula tu factor de inscripción."
+
+1) QUE ES
+Un solo archivo HTML (CSS y JavaScript incluidos, sin librerias). Pantallas: bienvenida, elegir calculo,
+calculadora de ponderado por curso y calculadora de FACTOR DE INSCRIPCION (FI).
+Fuera de este archivo usa: la fuente Montserrat alojada en /fonts/ (ya no depende de Google Fonts), logos en postimg.cc,
+el script de Vercel Insights, PostHog y la API propia /api/sugerencia (carpeta api/).
+
+2) FORMULA DEL FI
+  Desde el 2do ciclo:  FI = (promedio del ultimo semestre x 10) + creditos academicos acumulados + bonificaciones
+  Primer ciclo:        FI = (promedio del semestre x 10) + creditos matriculados + bonificaciones
+  - Creditos matriculados = suma de los creditos de los cursos con nota de ese semestre.
+  - Promedio semestral = suma(nota x creditos) / suma(creditos). Ponderado por creditos.
+  - El promedio NO se redondea al entero ni antes de multiplicar por 10. Se muestra con 2 decimales.
+    El FI tampoco se redondea al entero: solo muestra decimales si los tiene (max. 2).
+    Interruptor en el codigo: FI_REDONDEA_PROMEDIO (false = 143.33, true = 143.3).
+  - Ejemplo oficial corregido: promedio 14.33 x 10 = 143.33, mas 32 creditos acumulados, mas 16 de bonificacion = 191.33.
+    (En el video salia 143.80 y era un error. Tambien salia 37 creditos acumulados en la tabla: esos 37 incluian
+    cursos EFE, y para el FI se usan 32.)
+  - Ejemplo de primer ciclo: Nivelacion en Informatica 12 (3 cr), Lenguaje I 15 (4), Matematicas I 14 (5),
+    Sociologia 16 (4): suma de creditos 16, suma N x C 230, promedio 14.375 (se muestra 14.38).
+
+3) CURSOS EFE (Experiencias Formativas Estudiantiles)
+  Todos los cursos EFE (arte, cultura, deporte, servicio social, innovacion e investigacion, taller de
+  competencias profesionales) NO cuentan para el FI: no entran al promedio ni a los creditos acumulados.
+  Solo sirven porque la universidad exige minimo 4 creditos EFE y los cobra.
+  Decision del autor: NO mencionar EFE en la web. Por eso la web solo dice que se escriban "los creditos que cuentan para el FI".
+
+4) NIVELACIONES
+  Tienen 0 creditos academicos en los planes, pero para el FI valen como creditos administrativos:
+  Nivelacion en Matematicas = 4, Nivelacion en Lenguaje = 3, Nivelacion en Informatica = 3.
+  En la web se usan solo como peso en el promedio ponderado.
+
+5) BONIFICACIONES (el alumno marca solo las que tiene; no hay tope; se suman)
+  Encuesta (de docentes y encargados de practica) = 16 | Intercambio = 16 | Matricula preventiva = 16 |
+  Deportista = 16 | REA = 8 | REDA = 8.
+
+6) CREDITOS DE REFERENCIA
+  Economia General I = 5 | Fundamentos de las Ciencias Empresariales = 4 | Fundamentos de Contabilidad = 4 |
+  Introduccion a la Ingenieria = 4 | Matematicas I = 5 | Lenguaje I = 4 (Lenguaje II tambien 4).
+
+7) DATOS DE LAS CARRERAS (constante PLN en el JavaScript)
+  Fuente: los PDFs de planes de estudio de las 12 carreras: Administracion (2022), Contabilidad (2022), Derecho (2022),
+  Economia (2022-II), Finanzas (2022-II), Humanidades Digitales (2024), Ingenieria de la Informacion (2022),
+  Ingenieria Empresarial (2022), Ingenieria en Innovacion y Diseno (2024), Marketing (2022),
+  Negocios Internacionales (2022), Politica, Filosofia y Economia (2024-I).
+  Formato de cada curso: "nombre|creditos|codigo|horas teoricas (T)|horas practicas (P)".
+  Se ignora el D.A. (departamento academico). Los creditos de cada ciclo se verificaron contra los totales de cada PDF.
+  Los cursos de bloque (Sello UP: ciencias sociales, pensamiento critico, procesos sociales, quehacer cientifico,
+  desarrollo personal) son 15 cursos de 4 creditos, comunes a todas las carreras (constante FI_BL).
+  Cuando un PDF difiere de los demas se respeto el PDF de esa carrera:
+    - Derecho: Investigacion Academica 3 T / 0 P; Historia Critica del Peru figura con codigo 124022 (los demas usan 122005).
+    - Derecho: las nivelaciones salen con horas T/P distintas a las otras carreras (probable error de extraccion del PDF);
+      aqui se usan las de las demas carreras.
+    - Negocios Internacionales: Fundamentos de Contabilidad 2 T / 3 P y Analisis Multivariado 3 T / 2 P.
+    - Ingenieria de la Informacion: Ingenieria de Datos 4 T / 3 P.
+    - Humanidades Digitales: Tecnologia y Medios de Comunicacion figura con codigo 170346 (en Innovacion y Diseno es 170456).
+      Su PDF no trae total de creditos.
+    - Derecho: 24 creditos electivos (15 de derecho y 9 de otras carreras); no hay lista de electivos, se usa "Otro curso".
+    - Ingenieria Empresarial: las concentraciones (analitica de negocios, sistemas de informacion, finanzas corporativas)
+      estan en la lista de electivos. En las otras ingenierias las concentraciones estan en un documento aparte.
+
+8) NOTAS TECNICAS PARA EDITAR
+  - Los inputs del FI NO deben usar la clase "g": el manejador global del ponderado la usa y fallaria.
+  - Ids y clases del FI empiezan con "fi" o "f" (v-fi, fi-main, fisum, fimini, fbar...). El estado del FI esta en FS.
+  - localStorage: mp-theme (modo claro/oscuro) y mp-progress (notas, nota minima y redondeos de cada curso). Solo se guardan
+    los datos que el alumno cambio; los pesos salen siempre de la constante C. Si hay notas guardadas, al abrir la pagina se
+    vuelve directo al curso donde estaba (funciones save() y load()).
+  - Los % que se ven en cada evaluacion son sobre el TOTAL del curso (modelo A) y se calculan solos a partir de w (c.a).
+    d:"" en un nodo oculta su % (partes medidas en puntos, como los laboratorios de Introduccion a la Ingenieria).
+  - Todos los cursos redondean parcial, final y promedio final al entero (el .5 sube).
+  - Combinaciones para aprobar: filas en escalera (primeras evaluaciones mas altas, ultimas mas bajas) con diferencia D = 0, 3, 6, 9, 12.
+  - Compartir: boton en la barra superior y en el pie (menu de compartir en celular, copiar enlace en computadora).
+  - Sugerencias: formulario en el pie que envia JSON con fetch a /api/sugerencia (funcion de Vercel, ver punto 9). La funcion lo valida y lo reenvia
+    a Formspree o Resend; la direccion de Formspree ya NO esta en este archivo (vive en la variable de entorno FORMSPREE_ENDPOINT).
+  - Analiticas: PostHog (constantes PH_KEY y PH_REGION al inicio del script). Eventos con track(nombre, datos): pantalla, empezar_click,
+    curso_elegido, primera_nota, nota_ingresada, calculo_actualizado, combos_vistos, resumen_visto, faq_abierta, compartir_*, sugerencia_*,
+    instagram_click, tema_cambiado, etc. Nunca se envian los valores de las notas. Las grabaciones enmascaran todos los campos.
+  - Rendimiento: la fuente Montserrat (variable, solo latin, 38 KB) se sirve desde /fonts/ con preload y una fuente de respaldo con las mismas
+    medidas ("Montserrat Fallback") para que el texto no salte al cargar. El logo de bienvenida tiene preload y prioridad alta; los demas logos
+    prioridad baja. PostHog y favicon se cargan al final (idle()). vercel.json da cache de 365 dias a /fonts y agrega cabeceras de seguridad.
+    404.html es la pagina de error (Vercel la usa sola si esta junto a index).
+  - Formulario: protecciones en el navegador (trampa _gotcha, tiempo minimo, sin enlaces, sin repetidos, 1 por minuto, 3 al dia: clave mp-sg).
+    Son solo comodidad: cualquiera puede saltarselas. Las protecciones reales estan en el servidor (api/sugerencia.js), ver punto 9.
+  - No se guardan notas en ningun servidor; lo unico que sale del navegador es el mensaje que el alumno envia por el formulario.
+
+9) ARCHIVOS DEL PROYECTO (todos en la raiz del proyecto de Vercel)
+  index.html          esta pagina
+  404.html            pagina de error personalizada (Vercel la usa sola y responde con estado 404)
+  vercel.json         cabeceras de seguridad y cache largo para /fonts
+  fonts/montserrat-latin-wght-normal.woff2    fuente Montserrat variable (solo latin) alojada en el propio sitio
+  api/sugerencia.js   funcion de Vercel: recibe el formulario, lo valida y lo reenvia
+  Variables de entorno (Vercel > Settings > Environment Variables):
+    obligatoria, UNA de estas dos:  FORMSPREE_ENDPOINT (https://formspree.io/f/xxxx)  |  RESEND_API_KEY + CONTACT_TO (correo que recibe)
+    opcionales: TURNSTILE_SECRET | UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN (o KV_REST_API_URL + KV_REST_API_TOKEN)
+                | GLOBAL_DAILY_CAP (def. 20) | GLOBAL_MONTHLY_CAP (def. 45) | IP_DAILY_MAX (def. 10) | ALLOWED_ORIGINS | SITE_URL
+  Capas contra spam y abuso, de afuera hacia adentro:
+    1) Regla de Vercel Firewall (Rate Limit por IP sobre /api/sugerencia). Se crea en el panel, sin codigo.
+    2) La funcion: solo POST con JSON, origen permitido, trampa _gotcha, largo, sin enlaces, captcha Turnstile (si hay TURNSTILE_SECRET),
+       espera entre envios y maximo por dia por IP, mensaje repetido, y tope global por dia y por mes (protege el limite mensual de Formspree).
+    3) El navegador (solo comodidad): tiempo minimo, 1 por minuto y 3 al dia.
+  Sin Upstash los contadores viven en la memoria de cada instancia de la funcion: sirven de freno, pero no son estrictos.
+  Para activar Turnstile: poner la clave del sitio en TS_SITEKEY (bloque "Comentarios o sugerencias" del JavaScript) y TURNSTILE_SECRET en Vercel.
+  Logos: siguen en postimg.cc (host externo). Para ganar mas velocidad: subirlos a /img/ y cambiar las URLs i.postimg.cc (tambien el preload del head).
+=====================================================================
+-->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Mi UPonderado</title>
-<meta name="description" content="Calcula tu ponderado y mira qué notas necesitas para aprobar ">
+<title>My PonderUP</title>
+<script>document.documentElement.classList.add("js")</script>
+<meta name="description" content="Calcula tu ponderado y mira qué notas necesitas para aprobar.">
 <meta name="theme-color" content="#061F47">
-<meta name="author" content="@matiastf_">
-<meta property="og:title" content="Mi UPonderado">
+<meta name="author" content="@matiastf_ y @fabi_mvi">
+<meta property="og:title" content="My PonderUP">
 <meta property="og:description" content="Calcula tu ponderado y mira qué notas necesitas para aprobar.">
 <meta property="og:type" content="website">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🧮%3C/text%3E%3C/svg%3E">
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<meta property="og:image" content="https://i.postimg.cc/Th8SXWfd/Recurso-1.png">
+<link rel="icon" type="image/png" href="https://i.postimg.cc/kgMrMKWb/Recurso-3.png">
+<link rel="apple-touch-icon" href="https://i.postimg.cc/kgMrMKWb/Recurso-3.png">
+<link rel="preload" href="/fonts/montserrat-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preconnect" href="https://i.postimg.cc">
+<link rel="preload" as="image" href="https://i.postimg.cc/Th8SXWfd/Recurso-1.png" fetchpriority="high">
 <style>
+@font-face{font-family:Montserrat;font-style:normal;font-weight:100 900;font-display:swap;src:url(/fonts/montserrat-latin-wght-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Montserrat Fallback";src:local("Arial");size-adjust:112.83%;ascent-override:85.79%;descent-override:22.25%;line-gap-override:0%}
 :root{--navy:#061F47;--green:#00F03C;--blue:#0A5CFF;--bg:#F3F3F3;--card:#fff;--ink:#0B1F4B;--txt:#1A1A1A;--mut:#6B6B6B;--line:#E0E0E0;--lines:#0B1F4B;--fld:#fff;--gt:#00A329;--rt:#D92D3A;
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#07142b;--card:#0d2145;--ink:#eaf0ff;--txt:#dfe6f5;--mut:#9fb0cf;--line:#233a66;--lines:#9fb0cf;--fld:#0a1a38;--gt:#00F03C;--rt:#ff7a7a}}
@@ -21,7 +147,7 @@ html{background:var(--navy);scroll-padding-top:calc(72px + env(safe-area-inset-t
 @media(prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-body{margin:0;background:var(--bg);color:var(--txt);font:500 16px/1.55 Montserrat,"Helvetica Neue",Arial,sans-serif;min-height:100vh}
+body{margin:0;background:var(--bg);color:var(--txt);font:500 16px/1.55 Montserrat,"Montserrat Fallback","Helvetica Neue",Arial,sans-serif;min-height:100vh}
 .wrap{max-width:1070px;margin:0 auto;padding:0 16px}
 :focus-visible{outline:3px solid var(--blue);outline-offset:2px}
 @keyframes up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
@@ -30,8 +156,8 @@ body{margin:0;background:var(--bg);color:var(--txt);font:500 16px/1.55 Montserra
 @keyframes drop{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
 .rv{animation:up .7s cubic-bezier(.2,.7,.2,1) backwards;animation-delay:calc(var(--i,0)*100ms)}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
-.btn{display:inline-block;background:var(--green);color:var(--navy);font:700 .8rem/1 Montserrat,Arial,sans-serif;letter-spacing:.03em;text-transform:uppercase;padding:14px 18px;border:0;border-radius:2px;cursor:pointer;text-decoration:none}
-.btn.lg{font-size:1rem;padding:18px 36px;margin-top:8px}
+.btn{display:inline-block;background:var(--green);color:var(--navy);font:700 .8rem/1 Montserrat,"Montserrat Fallback",Arial,sans-serif;letter-spacing:.03em;text-transform:uppercase;padding:14px 18px;border:0;border-radius:2px;cursor:pointer;text-decoration:none}
+.btn.xl{font-size:1rem;padding:18px 36px;margin-top:8px}
 .logo{font-weight:800;font-size:1.15rem;letter-spacing:.03em;text-transform:uppercase}
 .logo b{color:var(--green)}
 .soon{font-style:normal;background:var(--green);color:var(--navy);font-size:.62rem;padding:2px 6px;border-radius:3px;margin-left:6px;letter-spacing:.05em}
@@ -42,10 +168,10 @@ body{margin:0;background:var(--bg);color:var(--txt);font:500 16px/1.55 Montserra
 .wt{margin:0 0 20px;font-weight:900;text-transform:uppercase;line-height:.98;letter-spacing:-.01em}
 .wt span{display:block}
 .wt .t1{font-size:clamp(1.4rem,6.5vw,2.6rem);color:#fff;font-weight:800;letter-spacing:.02em;margin-bottom:6px}
-.wt .t2{font-size:clamp(2.4rem,10.5vw,6rem);color:#fff}
+.wt .t2{font-size:clamp(2.6rem,12vw,6.2rem);color:#fff}
 .wt .t2 b{color:var(--green)}
 .pl{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));max-width:760px;margin-top:28px}
-.pl button{display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;background:rgba(255,255,255,.07);border:0;border-bottom:4px solid var(--s);color:#fff;padding:18px 18px 16px;font:800 1.1rem/1.2 Montserrat,Arial,sans-serif;text-transform:uppercase;cursor:pointer;transition:background .2s,transform .2s}
+.pl button{display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;background:rgba(255,255,255,.07);border:0;border-bottom:4px solid var(--s);color:#fff;padding:18px 18px 16px;font:800 1.1rem/1.2 Montserrat,"Montserrat Fallback",Arial,sans-serif;text-transform:uppercase;cursor:pointer;transition:background .2s,transform .2s}
 .pl button:hover:not(:disabled){background:rgba(255,255,255,.15);transform:translateY(-2px)}
 .pl button:disabled{opacity:.55;cursor:default}
 .pl small,#clist small,#cbtn .cq{font-size:.62rem;font-weight:600;letter-spacing:.08em;color:rgba(255,255,255,.7)}
@@ -55,18 +181,18 @@ body{margin:0;background:var(--bg);color:var(--txt);font:500 16px/1.55 Montserra
 .hd1{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-top:16px;padding-bottom:12px}
 .hd1 .logo{display:flex;align-items:center;font-size:.85rem}
 .hd1 .btn{padding:12px 14px;font-size:.72rem}
-.mark{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;background:var(--green);color:var(--navy);font:900 1.05rem Montserrat,Arial,sans-serif;font-style:normal;margin-right:10px;flex:none}
+.mark{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;background:var(--green);color:var(--navy);font:900 1.05rem Montserrat,"Montserrat Fallback",Arial,sans-serif;font-style:normal;margin-right:10px;flex:none}
 .cs{position:relative}
-#cbtn{width:100%;display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.08);border:0;border-bottom:4px solid var(--s,#0A5CFF);color:#fff;padding:12px 14px;font:800 .95rem/1.2 Montserrat,Arial,sans-serif;text-transform:uppercase;text-align:left;cursor:pointer}
+#cbtn{width:100%;display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.08);border:0;border-bottom:4px solid var(--s,#0A5CFF);color:#fff;padding:12px 14px;font:800 .95rem/1.2 Montserrat,"Montserrat Fallback",Arial,sans-serif;text-transform:uppercase;text-align:left;cursor:pointer}
 #cbtn .cv{flex:1}
 .chev{width:10px;height:10px;border-right:3px solid var(--green);border-bottom:3px solid var(--green);transform:rotate(45deg);margin:-4px 4px 0 0;transition:transform .2s,margin .2s}
 #cbtn[aria-expanded=true] .chev{transform:rotate(-135deg);margin-top:4px}
 #clist{position:absolute;left:16px;right:16px;top:100%;background:var(--navy);border:1px solid rgba(255,255,255,.2);border-top:0;border-radius:0 0 12px 12px;box-shadow:0 14px 28px rgba(0,0,0,.4);overflow:hidden;animation:drop .2s both}
-#clist button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;background:none;border:0;border-top:1px solid rgba(255,255,255,.12);color:#fff;padding:12px 14px;text-align:left;font:800 .95rem/1.2 Montserrat,Arial,sans-serif;text-transform:uppercase;cursor:pointer}
+#clist button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;background:none;border:0;border-top:1px solid rgba(255,255,255,.12);color:#fff;padding:12px 14px;text-align:left;font:800 .95rem/1.2 Montserrat,"Montserrat Fallback",Arial,sans-serif;text-transform:uppercase;cursor:pointer}
 #clist button.on{color:var(--green)}
 #clist button:disabled{opacity:.55;cursor:default}
 .hero{position:relative;overflow:hidden;padding:26px 0 30px}
-.hero::after{content:"%";position:absolute;right:-14px;top:-30px;font:900 15rem/1 Montserrat,Arial,sans-serif;color:rgba(255,255,255,.05);pointer-events:none}
+.hero::after{content:"%";position:absolute;right:-14px;top:-30px;font:900 15rem/1 Montserrat,"Montserrat Fallback",Arial,sans-serif;color:rgba(255,255,255,.05);pointer-events:none}
 .hero .wrap{position:relative;z-index:1}
 .hero h1{margin:0 0 16px;font-weight:900;text-transform:uppercase;line-height:.98;letter-spacing:-.01em}
 .hero h1 span{display:block}
@@ -78,13 +204,13 @@ body{margin:0;background:var(--bg);color:var(--txt);font:500 16px/1.55 Montserra
 .lg span::before{content:"";display:inline-block;width:10px;height:10px;background:var(--wb);margin-right:8px}
 /* Contenido */
 .body{padding-top:8px;padding-bottom:44px}
-h2{font:800 1.2rem/1.2 Montserrat,Arial,sans-serif;text-transform:uppercase;color:var(--ink);margin:30px 0 10px}
+h2{font:800 1.2rem/1.2 Montserrat,"Montserrat Fallback",Arial,sans-serif;text-transform:uppercase;color:var(--ink);margin:30px 0 10px}
 .body h2.it{margin-top:26px}
 .mut{color:var(--mut);margin:0 0 8px;font-size:.88rem}
 .blk{background:var(--card);border:1px solid var(--line);border-left:6px solid var(--green);margin-bottom:14px}
 .bh{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px}
 .bn{display:flex;align-items:center;gap:14px;min-width:0}
-.pct{font:900 2rem/1 Montserrat,Arial,sans-serif;color:var(--ink)}
+.pct{font:900 2rem/1 Montserrat,"Montserrat Fallback",Arial,sans-serif;color:var(--ink)}
 .bn b{font-weight:800;text-transform:uppercase;font-size:.88rem;letter-spacing:.02em;color:var(--ink)}
 .bb{padding:0 16px 8px}
 .row{display:grid;grid-template-columns:minmax(0,1fr) 120px;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
@@ -93,7 +219,7 @@ h2{font:800 1.2rem/1.2 Montserrat,Arial,sans-serif;text-transform:uppercase;colo
 .nm em{font-style:normal;color:var(--mut);font-size:.8rem;font-weight:500;margin-left:8px}
 .sv{font-variant-numeric:tabular-nums;text-align:right;font-weight:800;color:var(--ink);padding-right:4px}
 .sv.pn{font-weight:500;font-style:italic;color:var(--mut);font-size:.85rem}
-input[type=number]{width:100%;font:600 1rem Montserrat,Arial,sans-serif;padding:8px 10px;border:1px solid var(--lines);border-radius:2px;background:var(--fld);color:var(--ink)}
+input[type=number]{width:100%;font:600 1rem Montserrat,"Montserrat Fallback",Arial,sans-serif;padding:8px 10px;border:1px solid var(--lines);border-radius:2px;background:var(--fld);color:var(--ink)}
 input.g{width:120px;flex:none;padding:8px;-moz-appearance:textfield}
 input.g::-webkit-outer-spin-button,input.g::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .g::placeholder{color:var(--mut);opacity:1;font-style:italic;font-weight:500;font-size:.9rem}
@@ -101,7 +227,7 @@ input.g::-webkit-outer-spin-button,input.g::-webkit-inner-spin-button{-webkit-ap
 #sum{background:var(--card);border:1px solid var(--line);border-left:6px solid var(--green);padding:14px 16px;margin:6px 0 4px}
 .sm1{display:flex;align-items:center;justify-content:space-between;gap:12px}
 #sl1{font-weight:800;text-transform:uppercase;font-size:.9rem;letter-spacing:.02em;color:var(--ink)}
-#big{font:900 3.2rem/1 Montserrat,Arial,sans-serif;font-variant-numeric:tabular-nums;transition:color .3s}
+#big{font:900 3.2rem/1 Montserrat,"Montserrat Fallback",Arial,sans-serif;font-variant-numeric:tabular-nums;transition:color .3s}
 #big.gn{color:var(--gt)}#big.rd{color:var(--rt)}
 .pbar{position:relative;height:12px;background:var(--line);margin:12px 0 10px}
 #pf{position:absolute;left:0;top:0;bottom:0;transition:width .35s ease,background .3s}
@@ -128,7 +254,7 @@ td.pfc{background:rgba(0,240,60,.2);font-weight:800}
 .mb span{position:absolute;top:0;bottom:0;left:0}
 #mpf{transition:width .35s ease,background .3s}
 #mmk{top:-4px;bottom:-4px;width:3px;margin-left:-1px;background:#fff}
-#mbig{font:900 1.7rem/1 Montserrat,Arial,sans-serif;min-width:3.2ch;text-align:right;font-variant-numeric:tabular-nums}
+#mbig{font:900 1.7rem/1 Montserrat,"Montserrat Fallback",Arial,sans-serif;min-width:3.2ch;text-align:right;font-variant-numeric:tabular-nums}
 #mbig.gn{color:#00F03C}#mbig.rd{color:#ff7a7a}
 /* Preguntas y pie */
 .faq{padding:40px 0 44px}
@@ -137,18 +263,21 @@ td.pfc{background:rgba(0,240,60,.2);font-weight:800}
 .qa:last-of-type{border-bottom:1px solid rgba(255,255,255,.35)}
 .qa summary{list-style:none;display:grid;grid-template-columns:64px 1fr 30px;gap:12px;align-items:start;padding:20px 0;cursor:pointer}
 .qa summary::-webkit-details-marker{display:none}
-.no{font:900 2.6rem/1 Montserrat,Arial,sans-serif;color:var(--green)}
+.no{font:900 2.6rem/1 Montserrat,"Montserrat Fallback",Arial,sans-serif;color:var(--green)}
 .q{font-weight:700;font-size:1.05rem;line-height:1.35;padding-top:4px}
-.pm{position:relative;width:30px;height:30px;margin-top:4px;transition:transform .2s}
+.pm{position:relative;width:30px;height:30px;margin-top:4px;transition:transform .35s cubic-bezier(.3,1.3,.5,1)}
 .pm::before,.pm::after{content:"";position:absolute;left:0;right:0;top:50%;height:4px;margin-top:-2px;background:#fff}
 .pm::after{transform:rotate(90deg)}
-details[open]>summary .pm{transform:rotate(45deg)}
-.ans{padding:0 42px 22px 76px;color:rgba(255,255,255,.9)}
+details[open]:not(.closing)>summary .pm{transform:rotate(45deg)}
+.qa summary .q{transition:color .25s}
+.qa[open]:not(.closing) summary .q{color:var(--green)}
+.ans{padding:0 42px 0 76px;color:rgba(255,255,255,.9)}
+.ans::after{content:"";display:block;height:22px}
 .ans p{margin:0 0 10px}
 .ck{display:flex;align-items:center;gap:10px;margin:10px 0}
 .ck input{accent-color:var(--green);width:18px;height:18px}
 .ans .btn{margin-top:8px}
-footer{border-top:1px solid rgba(255,255,255,.2);padding:28px 0 36px;font-size:.85rem}
+footer{border-top:1px solid rgba(255,255,255,.2);padding:28px 0 128px;font-size:.85rem}/* 128px: deja el formulario libre del boton flotante de tema (.tgw, bottom:78px) */
 .fc{display:flex;flex-wrap:wrap;justify-content:space-between;gap:24px 48px}
 .fc p{max-width:50ch;color:rgba(255,255,255,.75);margin:10px 0 0}
 .fl b{display:block;text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px}
@@ -169,24 +298,15 @@ footer{border-top:1px solid rgba(255,255,255,.2);padding:28px 0 36px;font-size:.
 .dash2::before{background:#F000F0;width:14px;height:14px;top:-7px;margin-left:-7px;box-shadow:0 0 0 6px rgba(240,0,240,.2)}
 @keyframes spin{to{transform:rotate(360deg)}}
 .dt{position:absolute;border-radius:50%;animation:bob var(--t,7s) ease-in-out infinite alternate;animation-delay:var(--d,0s)}
-.cp{position:absolute;display:grid;place-items:center;min-width:46px;height:46px;padding:0 10px;border:2px solid rgba(255,255,255,.3);color:rgba(255,255,255,.65);font:800 1.05rem Montserrat,Arial,sans-serif;animation:bob var(--t,8s) ease-in-out infinite alternate;animation-delay:var(--d,0s)}
+.cp{position:absolute;display:grid;place-items:center;min-width:46px;height:46px;padding:0 10px;border:2px solid rgba(255,255,255,.3);color:rgba(255,255,255,.65);font:800 1.05rem Montserrat,"Montserrat Fallback",Arial,sans-serif;animation:bob var(--t,8s) ease-in-out infinite alternate;animation-delay:var(--d,0s)}
 @keyframes bob{from{transform:translate(0,0)}to{transform:translate(var(--x,10px),var(--y,-22px))}}
 .sq{position:absolute;width:54px;height:54px;border:3px solid #F000F0;opacity:.7;animation:spin 22s linear infinite}
 
 .bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;background:var(--navy);color:#fff}
-.lb{background:none;border:0;color:#fff;padding:0;cursor:pointer;font-family:Montserrat,Arial,sans-serif;text-align:left}
-.core{position:absolute;left:50%;top:50%;width:96px;height:96px;margin:-48px 0 0 -48px;display:grid;place-items:center;background:#00F03C;color:#061F47;font:900 3.2rem/1 Montserrat,Arial,sans-serif;font-style:normal;animation:pulse 3.2s ease-in-out infinite alternate}
+.lb{background:none;border:0;color:#fff;padding:0;cursor:pointer;font-family:Montserrat,"Montserrat Fallback",Arial,sans-serif;text-align:left}
+.core{position:absolute;left:50%;top:50%;width:96px;height:96px;margin:-48px 0 0 -48px;display:grid;place-items:center;background:#00F03C;color:#061F47;font:900 3.2rem/1 Montserrat,"Montserrat Fallback",Arial,sans-serif;font-style:normal;animation:pulse 3.2s ease-in-out infinite alternate}
 @keyframes pulse{from{transform:scale(.92) rotate(-3deg)}to{transform:scale(1.06) rotate(3deg)}}
 #v-pick .core{display:none}
-@media(max-width:700px){
-#v-welcome .wc{display:flex;flex-direction:column;justify-content:flex-end;min-height:100vh;min-height:100svh;padding-bottom:calc(60px + env(safe-area-inset-bottom,0px))}
-#v-welcome .rg{left:50%;right:auto;top:7%;bottom:auto;transform:translateX(-50%);width:min(88vw,400px)}
-#v-welcome .gw{-webkit-mask-image:radial-gradient(ellipse 95% 60% at 50% 30%,#000 10%,transparent 80%);mask-image:radial-gradient(ellipse 95% 60% at 50% 30%,#000 10%,transparent 80%)}
-#v-welcome .d3{bottom:auto;top:44%;right:30%}
-#v-welcome .c3{bottom:auto;top:40%;left:8%}
-#v-welcome .s1{bottom:auto;top:42%;right:8%}
-#v-welcome .btn.lg{display:block;width:100%;text-align:center}
-}
 
 .wm{position:absolute;left:0;right:0;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:2;text-align:center;font-size:.68rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.6);text-decoration:none;animation:fade 1.2s 1.4s backwards}
 .wm b,.fw b{color:var(--green);font-weight:800;letter-spacing:.04em;text-transform:none}
@@ -234,93 +354,360 @@ footer{border-top:1px solid rgba(255,255,255,.2);padding:28px 0 36px;font-size:.
 #mk:hover::after,.pbar.drag #mk::after{transform:scale(1.25)}
 .pbar.drag #mk{cursor:grabbing}
 #mk:focus-visible::after{box-shadow:0 0 0 3px var(--blue)}
-#mkt{position:absolute;left:50%;bottom:calc(100% + 2px);transform:translateX(-50%) scale(.9);opacity:0;background:var(--ink);color:var(--card);font:800 .8rem/1 Montserrat,Arial,sans-serif;padding:5px 8px;border-radius:4px;pointer-events:none;white-space:nowrap;transition:opacity .15s,transform .15s}
+#mkt{position:absolute;left:50%;bottom:calc(100% + 2px);transform:translateX(-50%) scale(.9);opacity:0;background:var(--ink);color:var(--card);font:800 .8rem/1 Montserrat,"Montserrat Fallback",Arial,sans-serif;padding:5px 8px;border-radius:4px;pointer-events:none;white-space:nowrap;transition:opacity .15s,transform .15s}
 .pbar.drag #mkt,#mk:hover #mkt,#mk:focus-visible #mkt{opacity:1;transform:translateX(-50%) scale(1)}
 
-/* ===== Modo mantenimiento (overlay) ===== */
-#mnt{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;padding:calc(20px + env(safe-area-inset-top,0px)) 20px calc(20px + env(safe-area-inset-bottom,0px));background:rgba(6,31,71,.94);animation:fade .8s both;overflow:auto;isolation:isolate}
-@supports((-webkit-backdrop-filter:blur(1px)) or (backdrop-filter:blur(1px))){#mnt{background:rgba(6,31,71,.5);-webkit-backdrop-filter:blur(16px) saturate(1.15);backdrop-filter:blur(16px) saturate(1.15);animation:mntb 1.2s ease both}}
-@keyframes mntb{from{background:rgba(6,31,71,0);-webkit-backdrop-filter:blur(0);backdrop-filter:blur(0)}to{background:rgba(6,31,71,.5);-webkit-backdrop-filter:blur(16px) saturate(1.15);backdrop-filter:blur(16px) saturate(1.15)}}
-#mnt:before,#mnt:after{content:"";position:fixed;z-index:-1;width:60vmax;height:60vmax;border-radius:50%;filter:blur(70px);opacity:.28;pointer-events:none;animation:mntf 14s ease-in-out infinite alternate}
-#mnt:before{left:-20vmax;bottom:-25vmax;background:radial-gradient(circle,#00F03C,transparent 65%)}
-#mnt:after{right:-22vmax;top:-28vmax;background:radial-gradient(circle,#0A5CFF,transparent 65%);animation-delay:-6s}
-@keyframes mntf{from{transform:translate(0,0) scale(1)}to{transform:translate(4vmax,-3vmax) scale(1.12)}}
-.mnt-card{position:relative;width:100%;max-width:540px;margin:auto;text-align:center;color:#fff;border-radius:24px;overflow:hidden;background:linear-gradient(160deg,rgba(13,33,69,.78),rgba(6,31,71,.62));border:1px solid rgba(0,240,60,.45);box-shadow:0 0 0 1px rgba(0,240,60,.08),0 0 48px rgba(0,240,60,.13),0 30px 80px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.08);animation:mntc 1s cubic-bezier(.2,.7,.2,1) .25s backwards}
-@supports((-webkit-backdrop-filter:blur(1px)) or (backdrop-filter:blur(1px))){.mnt-card{-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px)}}
-@keyframes mntc{from{opacity:0;transform:translateY(18px) scale(.97)}to{opacity:1;transform:none}}
-.mnt-top{display:flex;height:3px}.mnt-top i{flex:1}
-.mnt-in{padding:38px 40px 32px}
-.mnt-card .logo{display:inline-flex;align-items:center;font-size:.95rem;margin-bottom:30px}
-.mnt-card h2{color:#fff;margin:0 0 16px;font-weight:900;text-transform:uppercase;line-height:1.02;letter-spacing:-.005em;font-size:clamp(1.7rem,6.4vw,2.6rem)}
-.mnt-card h2 span{display:block}
-.mnt-card h2 b{color:var(--green);text-shadow:0 0 28px rgba(0,240,60,.35)}
-.mnt-card p{margin:0 auto 30px;max-width:420px;font-size:.92rem;line-height:1.6;color:rgba(255,255,255,.84)}
-.mnt-pr{max-width:360px;margin:0 auto 26px}
-.mnt-pl{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;font-size:.6rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.68)}
-.mnt-pl b{font-size:1.05rem;font-weight:900;letter-spacing:0;color:var(--green)}
-.mnt-tr{position:relative;height:6px;border-radius:99px;background:rgba(255,255,255,.12)}
-.mnt-fl{position:absolute;left:0;top:0;bottom:0;width:97%;border-radius:99px;background:var(--green);box-shadow:0 0 14px rgba(0,240,60,.65);animation:mntg 2.4s cubic-bezier(.2,.7,.2,1) .6s backwards}
-.mnt-fl i{position:absolute;inset:0;border-radius:99px;overflow:hidden}
-.mnt-fl i:after{content:"";position:absolute;top:0;bottom:0;width:60px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent);transform:translateX(-80px);animation:mnts 2.8s ease-in-out 3.2s infinite}
-.mnt-fl:after{content:"";position:absolute;right:-4px;top:50%;width:10px;height:10px;margin-top:-5px;border-radius:50%;background:#fff;box-shadow:0 0 0 3px rgba(0,240,60,.35),0 0 16px 2px var(--green)}
-@keyframes mntg{from{width:0}to{width:97%}}
-@keyframes mnts{0%{transform:translateX(-80px)}60%,100%{transform:translateX(420px)}}
-.mnt-sc{display:flex;justify-content:space-between;margin-top:9px;font-size:.56rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.45)}
-.mnt-th{display:block;font-size:.8rem;font-weight:600;letter-spacing:.03em;color:#9fb0cf;margin-bottom:18px}
-.mnt-ig{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
-.mnt-ig a{display:inline-flex;align-items:center;gap:7px;color:#fff;text-decoration:none;font-weight:700;font-size:.72rem;letter-spacing:.03em;padding:8px 14px;border-radius:999px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);transition:background .2s,border-color .2s}
-.mnt-ig a:hover{background:rgba(0,240,60,.12);border-color:rgba(0,240,60,.6)}
-@media(max-width:520px){.mnt-in{padding:30px 22px 26px}.mnt-card{border-radius:20px}}
+.hero{padding:38px 0 46px}
+.hero h1{margin-bottom:22px}
+.hero .strip{margin-bottom:28px}
+.hero .lg{margin-top:16px}
+.zm{margin-top:22px}
+.hero::before,.wel::before{content:"";position:absolute;inset:-40% -20%;z-index:0;pointer-events:none;background:radial-gradient(40% 45% at 20% 30%,rgba(10,92,255,.45),transparent 70%),radial-gradient(35% 40% at 78% 25%,rgba(0,240,60,.2),transparent 70%),radial-gradient(40% 45% at 60% 82%,rgba(240,0,240,.18),transparent 70%);animation:aur 22s ease-in-out infinite alternate;will-change:transform}
+@keyframes aur{from{transform:translate3d(-4%,-2%,0) rotate(0deg) scale(1)}to{transform:translate3d(4%,3%,0) rotate(8deg) scale(1.12)}}
+@keyframes mask{from{clip-path:inset(0 0 100% 0);transform:translateY(55%);opacity:0}to{clip-path:inset(0);transform:none;opacity:1}}
+.mr{animation:mask .9s cubic-bezier(.2,.8,.2,1) backwards;animation-delay:calc(var(--i,0)*120ms)}
+#pf,#mpf{overflow:hidden}
+#pf::after,#mpf::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 20%,rgba(255,255,255,.55) 50%,transparent 80%);transform:translateX(-100%);animation:shine 3.8s ease-in-out infinite}
+@keyframes shine{0%,55%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+.js .sr{opacity:0;transform:translateY(22px);transition:opacity .8s cubic-bezier(.2,.7,.2,1),transform .8s cubic-bezier(.2,.7,.2,1);transition-delay:calc(var(--i,0)*90ms)}
+.js .sr.in{opacity:1;transform:none}
+.btn{position:relative;overflow:hidden;transition:transform .2s,box-shadow .2s}
+.btn::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.65) 50%,transparent 70%);transform:translateX(-120%);animation:sheen 5s ease-in-out infinite}
+@keyframes sheen{0%,60%{transform:translateX(-120%)}100%{transform:translateX(120%)}}
+.btn:active{transform:scale(.97)}
+@media(hover:hover){.btn:hover{transform:translateY(-2px);box-shadow:0 10px 22px rgba(0,240,60,.35)}.blk{transition:transform .25s,box-shadow .25s}.blk:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(6,31,71,.14)}}
+input.g{transition:box-shadow .2s,border-color .2s,background .2s}
+input.g:focus{border-style:solid;border-color:var(--ink);box-shadow:0 0 0 3px rgba(0,240,60,.45)}
+.zs.pop{animation:pop .55s cubic-bezier(.3,1.6,.5,1)}
+@keyframes pop{0%{transform:scaleY(1)}40%{transform:scaleY(1.45)}100%{transform:scaleY(1)}}
+
+.wm{gap:18px}
+.wm a{display:inline-flex;align-items:center;gap:7px;color:rgba(255,255,255,.65);text-decoration:none;transition:color .2s}
+.wm a+a{padding-left:18px;border-left:1px solid rgba(255,255,255,.25)}
+.wm:hover{color:rgba(255,255,255,.65)}
+.wm a:hover{color:var(--green)}
+.igs{display:flex;flex-wrap:wrap;gap:4px 18px}
+
+#sl1{font-size:clamp(1.1rem,4.8vw,1.5rem);font-weight:900;line-height:1.15;letter-spacing:.01em}
+#big{font-size:3.6rem}
+.nota{display:flex;gap:12px;align-items:flex-start;margin:0 0 20px;padding:12px 14px;background:color-mix(in srgb,var(--green) 12%,var(--card));border-left:4px solid var(--green);font-size:.88rem;line-height:1.5;color:var(--txt)}
+.nota i{flex:none;display:grid;place-items:center;width:20px;height:20px;margin-top:1px;border-radius:50%;background:var(--navy);color:var(--green);font:800 .75rem/1 Montserrat,"Montserrat Fallback",Arial,sans-serif;font-style:normal}
+.nota b{color:var(--ink)}
+/* Casillas: la nota y el "/20" van centrados juntos; el "/20" aparece solo cuando hay nota */
+.gi{position:relative;display:flex;align-items:center;justify-content:center;gap:2px;width:120px;height:40px;padding:0 8px;flex:none;border:1px dashed var(--mut);border-radius:2px;background:color-mix(in srgb,var(--ink) 5%,var(--fld));transition:border-color .2s,box-shadow .2s,background .2s}
+.gi.fl{border:1px solid var(--lines);background:var(--fld)}
+.gi:focus-within{border-style:solid;border-color:var(--ink);box-shadow:0 0 0 3px rgba(0,240,60,.45)}
+.gi.bad{border-style:solid;border-color:#ff5a5f;box-shadow:0 0 0 3px rgba(255,90,95,.25)}
+.gi input.g,.gi input.g:focus,.gi input.g:placeholder-shown{width:3ch;min-width:0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;outline:none;text-align:center}
+.gi input.g:placeholder-shown{width:100%}
+.sf{color:var(--mut);font-size:.8rem;font-weight:600;white-space:nowrap;pointer-events:none}
+input.g:placeholder-shown+.sf{display:none}
+/* Círculos verdes de avance junto a cada nota */
+.row:not(.grp) .nm::before,#tree.hdots .bh.lf .bn::before{content:"";display:inline-block;flex:none;width:9px;height:9px;margin-right:10px;border-radius:50%;border:2px solid var(--mut);transition:background .25s,border-color .25s,box-shadow .25s}
+.row.dn:not(.grp) .nm::before,#tree.hdots .bh.lf.dn .bn::before{background:#00F03C;border-color:#00F03C;box-shadow:0 0 0 3px rgba(0,240,60,.25)}
+#tree.hdots .bh.lf .bn::before{margin-right:0}
+.hero{padding:34px 0 24px}
+.body h2.it{margin:20px 0 16px}
+.ns{display:none}
+@media (max-width:600px){.nl{display:none}.ns{display:inline}}
+@supports (-webkit-background-clip:text) or (background-clip:text){
+.hero h1 .t2{background-image:linear-gradient(100deg,transparent 42%,#fff 50%,transparent 58%),linear-gradient(var(--green),var(--green));background-size:250% 100%,100% 100%;background-repeat:no-repeat;background-position:120% 0,0 0;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.hero h1 .t2.mr{animation:mask .9s cubic-bezier(.2,.8,.2,1) backwards,tshine 5s ease-in-out infinite;animation-delay:calc(var(--i,0)*120ms),1.6s}
+}
+@keyframes tshine{0%,55%{background-position:120% 0,0 0}100%{background-position:-20% 0,0 0}}
+/* Nota mínima: control arrastrable centrado sobre la barra */
+.pbar{margin:18px 0 12px}
+.pbar::after{top:-20px;bottom:-20px}
+#mk{top:50%;bottom:auto;width:44px;height:44px;margin:-22px 0 0 -22px}
+#mk::before{left:50%;top:50%;bottom:auto;width:3px;height:34px;margin:-17px 0 0 -1.5px;border-radius:2px;background:var(--ink);box-shadow:0 0 0 2px var(--card)}
+#mk::after{left:50%;top:50%;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;background:var(--card);border:3px solid var(--ink);box-shadow:0 2px 6px rgba(0,0,0,.3)}
+#sum{position:relative}
+/* Celebración al alcanzar la nota mínima */
+.cf{position:absolute;right:46px;top:44px;width:0;height:0;pointer-events:none;z-index:7}
+.cf i{position:absolute;left:0;top:0;width:var(--s);height:var(--s);background:var(--c);border-radius:2px;animation:conf 1.1s cubic-bezier(.15,.7,.3,1) forwards;animation-delay:var(--d,0ms)}
+@keyframes conf{0%{transform:translate(0,0) rotate(0) scale(.4);opacity:1}70%{opacity:1}100%{transform:translate(var(--x),calc(var(--y) + 70px)) rotate(var(--r)) scale(1);opacity:0}}
+.gi.fl input.g{font-variant-numeric:tabular-nums}
+/* Centrado exacto del control de nota mínima */
+#mk::before,#mk::after{box-sizing:border-box}
+#mmk{margin-left:-1.5px}
+/* Tabla de combinaciones con muchas columnas: encabezados que se acomodan y primera/última columna fijas al desplazar */
+.sc th{white-space:normal;min-width:76px;line-height:1.2;vertical-align:bottom}
+.sc table{min-width:100%;width:max-content}
+.sc th:first-child,.sc td:first-child{position:sticky;left:0;z-index:1}
+.sc th:last-child,.sc td:last-child{position:sticky;right:0;z-index:1}
+.sc td:first-child{background:var(--card)}
+.sc td.pfc{background:color-mix(in srgb,#00F03C 20%,var(--card))}
+.sc th:last-child{box-shadow:-6px 0 8px -6px rgba(6,31,71,.35)}
+.sc td:last-child{box-shadow:-6px 0 8px -6px rgba(6,31,71,.2)}
+.sc th:first-child{box-shadow:6px 0 8px -6px rgba(6,31,71,.35)}
+.sc td:first-child{box-shadow:6px 0 8px -6px rgba(6,31,71,.2)}
+/* Filas con círculo: sangría para nombres de varias líneas */
+.nm{position:relative}
+.row:not(.grp) .nm{padding-left:calc(var(--d,0)*16px + 22px)}
+.row:not(.grp) .nm::before{position:absolute;left:calc(var(--d,0)*16px);top:calc(.775em - 6.5px);margin:0}
+@media (max-width:600px){.hdeco{display:none}}
+/* ===== Bienvenida centrada con logo, brillos y efectos ===== */
+.core{display:none}
+#v-welcome .wc{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-height:100vh;min-height:100svh;padding:56px 16px calc(66px + env(safe-area-inset-bottom,0px))}
+#v-welcome .wt{display:flex;flex-direction:column;align-items:center;margin:0 0 6px}
+#v-welcome .wt .t1{margin:0 0 16px;font-size:clamp(1.1rem,4.4vw,1.8rem);letter-spacing:.16em}
+#v-welcome .strip{margin:0 auto 28px;transform-origin:center}
+.lgw{position:relative;display:block;isolation:isolate;margin:0 auto}
+.lg-v{display:block;width:min(58vw,290px);max-height:34vh;height:auto;object-fit:contain;margin:0 auto;animation:glowp 4.5s ease-in-out infinite alternate}
+@keyframes glowp{from{filter:drop-shadow(0 0 12px rgba(0,240,60,.16)) brightness(1)}to{filter:drop-shadow(0 0 30px rgba(0,240,60,.5)) brightness(1.12)}}
+.halo{position:absolute;left:50%;top:50%;width:150%;aspect-ratio:1;transform:translate(-50%,-50%);background:radial-gradient(closest-side,rgba(0,240,60,.26),rgba(10,92,255,.2) 48%,transparent 72%);filter:blur(8px);z-index:-1;pointer-events:none;animation:halo 5s ease-in-out infinite alternate}
+@keyframes halo{from{opacity:.5;transform:translate(-50%,-50%) scale(.9)}to{opacity:1;transform:translate(-50%,-50%) scale(1.1)}}
+.fbv{display:block;font:900 clamp(2.6rem,12vw,6.2rem)/.95 Montserrat,"Montserrat Fallback",Arial,sans-serif;text-transform:uppercase;letter-spacing:-.01em;color:#fff}
+.fbv b{color:var(--green)}
+.sp{position:absolute;left:var(--x,50%);top:var(--y,50%);width:var(--s,16px);height:var(--s,16px);background:#fff;clip-path:polygon(50% 0,61% 39%,100% 50%,61% 61%,50% 100%,39% 61%,0 50%,39% 39%);opacity:0;animation:twk 3.4s ease-in-out infinite;animation-delay:var(--d,0s);pointer-events:none}
+@keyframes twk{0%,100%{opacity:0;transform:scale(.2) rotate(0)}45%{opacity:1;transform:scale(1) rotate(45deg)}72%{opacity:.5;transform:scale(.65) rotate(80deg)}}
+.pt{position:absolute;bottom:-12px;left:var(--x,50%);width:var(--z,3px);height:var(--z,3px);border-radius:50%;background:var(--c,#fff);opacity:0;animation:rise var(--t,11s) linear infinite;animation-delay:var(--d,0s)}
+@keyframes rise{0%{transform:translate(0,0);opacity:0}12%{opacity:.85}85%{opacity:.55}100%{transform:translate(var(--dx,20px),-105vh);opacity:0}}
+.beam{position:absolute;top:-15%;bottom:-15%;left:-40%;width:36%;background:linear-gradient(100deg,transparent 0%,rgba(255,255,255,.03) 28%,rgba(170,255,205,.14) 44%,rgba(255,255,255,.3) 50%,rgba(170,255,205,.14) 56%,rgba(255,255,255,.03) 72%,transparent 100%);filter:blur(12px);-webkit-mask-image:radial-gradient(ellipse 55% 48% at 50% 50%,#000 20%,transparent 100%);mask-image:radial-gradient(ellipse 55% 48% at 50% 50%,#000 20%,transparent 100%);mix-blend-mode:screen;transform:skewX(-18deg) translateX(-130%);animation:beam 8s ease-in-out 1.2s infinite;pointer-events:none}
+.beam::after{content:"";position:absolute;top:22%;bottom:22%;left:50%;width:2px;margin-left:-1px;background:linear-gradient(transparent,rgba(255,255,255,.75) 50%,transparent);filter:blur(1.5px)}
+@keyframes beam{0%,45%{transform:skewX(-18deg) translateX(-130%);opacity:0}55%{opacity:1}90%{opacity:1}100%{transform:skewX(-18deg) translateX(440%);opacity:0}}
+.cta{position:relative;display:inline-block}
+#v-welcome .btn.xl{min-width:min(76vw,320px)}
+#v-welcome .rg{left:50%;top:50%;right:auto;bottom:auto;transform:translate(-50%,-50%);width:min(120vmin,1000px)}
+#v-welcome .gw{-webkit-mask-image:radial-gradient(ellipse 72% 62% at 50% 50%,#000 10%,transparent 80%);mask-image:radial-gradient(ellipse 72% 62% at 50% 50%,#000 10%,transparent 80%)}
+@supports (-webkit-background-clip:text) or (background-clip:text){
+#v-welcome .wt .t1{background-image:linear-gradient(100deg,transparent 40%,rgba(0,240,60,.95) 50%,transparent 60%),linear-gradient(#fff,#fff);background-size:250% 100%,100% 100%;background-repeat:no-repeat;background-position:120% 0,0 0;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+#v-welcome .wt .t1.mr{animation:mask .9s cubic-bezier(.2,.8,.2,1) backwards,tshine 6s ease-in-out infinite;animation-delay:calc(var(--i,0)*120ms),2s}
+}
+/* ===== Logos ===== */
+.lg-h{display:block;height:44px;width:auto;max-width:58vw}
+.hd1 .lb{display:flex;align-items:center}
+.fbh{display:inline-flex;align-items:center;font-weight:800;font-size:.85rem;letter-spacing:.03em;text-transform:uppercase}
+.fbh .mark{margin-right:10px}.fbh b{color:var(--green)}
+.lg-f{display:block;width:min(38vw,130px);max-width:none;height:auto;object-fit:contain}
+/* ===== Interruptor flotante sol / luna ===== */
+.tgw{position:fixed;right:14px;bottom:calc(78px + env(safe-area-inset-bottom,0px));z-index:45;transition:opacity .35s ease,transform .35s ease}
+.tgw.off{opacity:0;transform:translateY(16px) scale(.9);pointer-events:none}
+.tg{position:relative;display:block;width:72px;height:38px;padding:0;border:2px solid var(--green);border-radius:99px;background:var(--navy);cursor:pointer;box-shadow:0 8px 22px rgba(6,31,71,.4),0 0 0 4px rgba(0,240,60,.14);animation:flt 4.5s ease-in-out infinite alternate}
+.tg .ti{position:absolute;top:50%;width:18px;height:18px;margin-top:-9px;color:rgba(255,255,255,.55)}
+.tg .ti.s{left:9px}.tg .ti.m{right:9px}
+.tg .tk{position:absolute;left:3px;top:50%;width:28px;height:28px;margin-top:-14px;border-radius:50%;background:var(--green);color:var(--navy);display:grid;place-items:center;transition:transform .4s cubic-bezier(.3,1.4,.5,1)}
+.tg[aria-checked="true"] .tk{transform:translateX(34px)}
+.tk svg{grid-area:1/1;width:16px;height:16px;transition:opacity .25s,transform .4s}
+.tg[aria-checked="false"] .tk .m,.tg[aria-checked="true"] .tk .s{opacity:0;transform:rotate(-90deg) scale(.5)}
+.tg:focus-visible{outline:3px solid var(--blue);outline-offset:4px}
+/* Ajustes: separación del logo, anillo del botón y logo horizontal sin deformarse */
+#v-welcome .lgw{margin-bottom:30px}
+.lg-h{object-fit:contain;object-position:left center;max-width:calc(100vw - 210px)}
+.hd1 .lb{min-width:0}
+.hd1 .btn{white-space:nowrap;flex:none}
+/* Brillo (shimmer) en barras: mismo estilo que #pf y #mpf */
+.wb,.zb{position:relative}
+.wb{overflow:hidden}
+.wb::after,.zs::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 20%,rgba(255,255,255,.55) 50%,transparent 80%);transform:translateX(-100%);animation:shine 3.8s ease-in-out infinite;pointer-events:none}
+.zs{position:relative}
+.zs.pd::after{display:none}
+
+/* ===== Inicio centrado: el logo queda en el centro exacto de la pantalla y de las circunferencias ===== */
+#v-welcome{--lw:clamp(210px,min(64.5vw,51vh),570px)}
+@supports (height:1svh){#v-welcome{--lw:clamp(210px,min(64.5vw,51svh),570px)}}
+#v-welcome .wc{display:grid;grid-template-rows:minmax(0,1fr) auto minmax(0,1fr);justify-items:center;align-items:start;text-align:center;min-height:100vh;min-height:100svh;padding:40px 16px}
+#v-welcome .wtop{align-self:end;margin:0;padding-bottom:clamp(16px,4vh,38px)}
+#v-welcome .wtop .t1{margin:0}
+#v-welcome .wmid{margin:0;display:flex;justify-content:center}
+#v-welcome .lgw{display:grid;place-items:center;width:var(--lw);margin:0}
+#v-welcome .lg-v{width:100%;max-height:56vh;max-height:56svh;object-fit:contain}
+#v-welcome .fbv{font-size:calc(var(--lw)*.17);white-space:nowrap}
+#v-welcome .wbot{align-self:start;display:flex;flex-direction:column;align-items:center;padding-top:clamp(20px,4.5vh,42px)}
+#v-welcome .strip{margin:0 auto clamp(14px,3vh,26px)}
+#v-welcome .btn.xl{margin-top:0}
+#v-welcome .rg{width:calc(var(--lw)*3.4)}
+#v-welcome .dash{inset:auto;left:50%;top:50%;width:calc(var(--lw)*2.2);height:calc(var(--lw)*2.2);margin:calc(var(--lw)*-1.1) 0 0 calc(var(--lw)*-1.1)}
+#v-welcome .dash2{width:calc(var(--lw)*1.5);height:calc(var(--lw)*1.5);margin:calc(var(--lw)*-.75) 0 0 calc(var(--lw)*-.75)}
+@media (max-height:500px){
+ #v-welcome{--lw:clamp(165px,min(64.5vw,51vh),570px)}
+ #v-welcome .wc{padding:14px 16px}
+ #v-welcome .wtop{padding-bottom:10px}
+ #v-welcome .wbot{padding-top:12px}
+ #v-welcome .strip{margin-bottom:12px}
+ #v-welcome .btn.xl{padding:12px 28px}
+ #v-welcome .lg-v{max-height:50vh}
+ #v-welcome .btn.xl{min-width:260px}
+ .wm{left:auto;right:12px;bottom:6px;gap:10px;font-size:.72rem}
+ .wm a+a{padding-left:10px}
+}
+@media (max-height:340px){.wm{display:none}#v-welcome{--lw:clamp(110px,min(64.5vw,40vh),570px)}#v-welcome .lg-v{max-height:42vh}}
+/* ===== Ajustes generales para pantallas pequeñas ===== */
+@media (max-width:480px){
+ .qa summary{grid-template-columns:44px 1fr 26px;gap:8px;padding:16px 0}
+ .no{font-size:2rem}
+ .q{font-size:.98rem}
+ .pm{width:26px;height:26px}
+ .ans{padding:0 6px 0 52px}
+ .ans::after{height:20px}
+ .lg2,.lg{font-size:.66rem}
+}
+
+/* ===== Cursos agrupados ===== */
+.pgs{max-width:760px;margin-top:22px}
+.pg+.pg{margin-top:28px}
+.gt{display:flex;align-items:center;gap:12px;margin:0;font:800 .74rem/1 Montserrat,"Montserrat Fallback",Arial,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--green)}
+.gt::after{content:"";flex:1;height:1px;background:rgba(255,255,255,.22)}
+.gt i{order:2;font-style:normal;font-size:.62rem;letter-spacing:.06em;color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.3);border-radius:99px;padding:3px 8px}
+.pgs .pl{margin-top:14px}
+.gh{padding:12px 14px 6px;font:800 .62rem/1 Montserrat,"Montserrat Fallback",Arial,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--green);border-top:1px solid rgba(255,255,255,.12)}
+.gh:first-child{border-top:0}
+#clist{max-height:min(64vh,520px);overflow-y:auto;overscroll-behavior:contain}
+#clist .gh+button{border-top:0}
+.fl b.sp2{margin-top:16px}
+@media (max-width:480px){.pl button{padding:15px 16px 13px;font-size:1rem}.pgs{margin-top:18px}}
+/* ===== Pie: comentarios alineados con el último curso ===== */
+.fc{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto 1fr;grid-template-areas:"lg co" "cm co";gap:24px 48px}
+.fc>div:first-child{grid-area:lg}
+#fl{grid-area:co;justify-self:end}
+.fc>.fl:last-child{grid-area:cm;align-self:end}
+@media (max-width:760px){.fc{grid-template-columns:minmax(0,1fr);grid-template-rows:auto;grid-template-areas:"lg" "co" "cm"}#fl{justify-self:start}.fc>.fl:last-child{align-self:start}}
+
+/* ===== Factor de inscripción ===== */
+.fback{display:flex;align-items:center;gap:10px;width:100%;background:rgba(255,255,255,.08);border:0;border-bottom:4px solid var(--green);color:#fff;padding:12px 14px;font:800 .95rem/1.2 Montserrat,"Montserrat Fallback",Arial,sans-serif;text-transform:uppercase;text-align:left;cursor:pointer}
+.fback small{font-size:.62rem;font-weight:600;letter-spacing:.08em;color:rgba(255,255,255,.7)}
+.fback b{flex:1;font-weight:800}
+.fch2{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));margin:0 0 10px}
+.fch2 button{display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;background:var(--card);border:1px solid var(--line);border-left:6px solid var(--mut);color:var(--ink);padding:16px 18px;font:inherit;cursor:pointer;transition:border-color .2s,box-shadow .2s,background .2s}
+.fch2 button b{font:800 1rem/1.2 Montserrat,"Montserrat Fallback",Arial,sans-serif;text-transform:uppercase}
+.fch2 button span{font-size:.85rem;color:var(--mut);font-weight:500}
+.fch2 button[aria-checked=true]{border-color:var(--green);background:color-mix(in srgb,var(--green) 12%,var(--card));box-shadow:0 0 0 3px rgba(0,240,60,.35)}
+.fgrid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));margin:0 0 14px}
+.fsl{display:grid;gap:6px;align-content:start}
+.fsl label{font:800 .72rem/1 Montserrat,"Montserrat Fallback",Arial,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--ink)}
+.fsl small{color:var(--mut);font-size:.78rem;font-weight:500;line-height:1.35}
+.fsel{width:100%;font:600 1rem Montserrat,"Montserrat Fallback",Arial,sans-serif;padding:12px 10px;border:1px solid var(--lines);border-radius:2px;background:var(--fld);color:var(--ink)}
+.fsel option,.fsel optgroup{background:var(--card);color:var(--ink)}
+.fsel:focus{outline:none;border-color:var(--ink);box-shadow:0 0 0 3px rgba(0,240,60,.45)}
+.fbk{background:var(--card);border:1px solid var(--line);border-left:6px solid var(--green);margin:0 0 14px}
+.fhd{display:grid;grid-template-columns:minmax(0,1fr) 78px 96px 64px 36px;gap:8px;padding:10px 16px;background:var(--navy);color:#fff;font:700 .7rem/1.2 Montserrat,"Montserrat Fallback",Arial,sans-serif;text-transform:uppercase;letter-spacing:.03em}
+.fhd span+span{text-align:center}
+.frow{display:grid;grid-template-columns:minmax(0,1fr) 78px 96px 64px 36px;grid-template-areas:"nm cr nt nc del";gap:8px;align-items:center;padding:10px 16px;border-top:1px solid var(--line)}
+.fhd+.frow,.fbk>.frow:first-child{border-top:0}
+.fnm{grid-area:nm;font-weight:700;color:var(--ink);min-width:0;overflow-wrap:anywhere}
+.fcr{grid-area:cr}.fnt{grid-area:nt}
+.flb{display:block;margin:0}
+.flb small,.fnc small{display:none}
+.fin{width:100%;font:600 1rem Montserrat,"Montserrat Fallback",Arial,sans-serif;padding:8px;border:1px solid var(--lines);border-radius:2px;background:var(--fld);color:var(--ink);text-align:center;-moz-appearance:textfield;transition:box-shadow .2s,border-color .2s,background .2s}
+.fin::-webkit-outer-spin-button,.fin::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.fin::placeholder{color:var(--mut);opacity:1;font-style:italic;font-weight:500;font-size:.9rem}
+.fin:placeholder-shown{border-style:dashed;border-color:var(--mut);background:color-mix(in srgb,var(--ink) 5%,var(--fld))}
+.fin:focus{outline:none;border-style:solid;border-color:var(--ink);box-shadow:0 0 0 3px rgba(0,240,60,.45)}
+.fin.bad{border-style:solid;border-color:#ff5a5f;box-shadow:0 0 0 3px rgba(255,90,95,.25)}
+.fin.tx{text-align:left}
+.fnc{grid-area:nc;text-align:center;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums}
+.fdel{grid-area:del;width:34px;height:34px;display:grid;place-items:center;background:none;border:1px solid var(--line);border-radius:2px;color:var(--mut);cursor:pointer;font:700 .95rem/1 Montserrat,"Montserrat Fallback",Arial,sans-serif;padding:0}
+.fdel:hover{color:var(--rt);border-color:var(--rt)}
+.fempty{padding:18px 16px;color:var(--mut);font-size:.9rem}
+.ftot{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 18px;padding:10px 16px;border-top:2px solid var(--ink);font-weight:700;color:var(--ink);font-size:.85rem;font-variant-numeric:tabular-nums}
+.fcrd{padding:14px 16px}
+.fcrd label{display:block;font:800 .72rem/1 Montserrat,"Montserrat Fallback",Arial,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--ink);margin-bottom:8px}
+.fcrd .fin{max-width:200px;font-size:1.2rem;font-weight:800}
+.fcrd small{display:block;margin-top:8px;color:var(--mut);font-size:.82rem;line-height:1.4}
+.fcv{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.fcv b{font:900 2.4rem/1 Montserrat,"Montserrat Fallback",Arial,sans-serif;color:var(--ink);font-variant-numeric:tabular-nums}
+.fbg{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+.fbon{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-left:6px solid var(--mut);padding:12px 14px;cursor:pointer;transition:border-color .2s,background .2s,box-shadow .2s}
+.fbon input{accent-color:var(--green);width:20px;height:20px;flex:none;margin:0;cursor:pointer}
+.fbt{flex:1;min-width:0;color:var(--ink);font-weight:800;text-transform:uppercase;font-size:.85rem;letter-spacing:.02em}
+.fbt em{display:block;font-style:normal;text-transform:none;font-weight:500;color:var(--mut);font-size:.78rem;letter-spacing:0;margin-top:2px}
+.fpt{font:900 1.2rem/1 Montserrat,"Montserrat Fallback",Arial,sans-serif;color:var(--ink);font-variant-numeric:tabular-nums}
+.fbon.on{border-color:var(--green);background:color-mix(in srgb,var(--green) 12%,var(--card))}
+.fbon:focus-within{box-shadow:0 0 0 3px rgba(0,240,60,.45)}
+.fbs{margin:10px 0 0;text-align:right;font-weight:700;color:var(--ink);font-size:.9rem}
+#fisum{position:relative;background:var(--card);border:1px solid var(--line);border-left:6px solid var(--green);padding:14px 16px;margin:6px 0 4px}
+#fl1{font-weight:800;text-transform:uppercase;font-size:.9rem;letter-spacing:.02em;color:var(--ink)}
+#fibig{font:900 3.6rem/1 Montserrat,"Montserrat Fallback",Arial,sans-serif;font-variant-numeric:tabular-nums;color:var(--ink);transition:color .3s}
+#fibig.na{color:var(--mut)}
+.fbd{margin-top:14px;border-top:1px solid var(--line)}
+.fbr{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);color:var(--ink);font-weight:600}
+.fbr b{font-variant-numeric:tabular-nums;font-weight:800;white-space:nowrap}
+.fbr.sub span{color:var(--mut);font-weight:500;font-size:.85rem}
+.fbr.sub b{color:var(--mut);font-weight:600;font-size:.85rem}
+.fbr.tot{border-bottom:0;border-top:2px solid var(--ink);margin-top:-1px;font-weight:800;text-transform:uppercase;font-size:.9rem}
+.fbr.tot b{font-size:1.15rem}
+#fimsg{margin:14px 0 0}
+#fisum .btn{margin-top:14px;background:transparent;color:var(--ink);box-shadow:inset 0 0 0 2px var(--ink)}
+#fisum .btn::after{display:none}
+#fbar span{overflow:hidden;white-space:nowrap;transition:flex-grow .35s ease}
+#fimini{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));border-top:3px solid var(--green);transform:translateY(115%);transition:transform .35s cubic-bezier(.2,.7,.2,1)}
+#fimini.on{transform:none}
+#fimini .ml{max-width:none;font-size:.7rem}
+#fmbig{font:900 1.7rem/1 Montserrat,"Montserrat Fallback",Arial,sans-serif;min-width:3.2ch;text-align:right;font-variant-numeric:tabular-nums}
+#fmbig.na{color:rgba(255,255,255,.6)}
+#ffl{grid-area:co;justify-self:end}
+@media (max-width:760px){#ffl{justify-self:start}}
+@media (max-width:600px){
+ .fhd{display:none}
+ .frow{grid-template-columns:78px 104px minmax(0,1fr) 38px;grid-template-areas:"nm nm nm nm" "cr nt nc del";align-items:end}
+ .flb small,.fnc small{display:block;font-size:.62rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin-bottom:3px}
+ .fnc{align-self:end;padding-bottom:7px}
+ .fdel{align-self:end}
+ #fibig{font-size:3rem}
+}
+/* ===== Compartir, sugerencias y aviso ===== */
+.hr{display:flex;align-items:center;gap:8px;flex:none}
+.shb{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;min-width:40px;padding:0 12px;background:transparent;color:var(--green);border:2px solid var(--green);border-radius:2px;font:700 .72rem/1 Montserrat,"Montserrat Fallback",Arial,sans-serif;letter-spacing:.03em;text-transform:uppercase;cursor:pointer;transition:background .2s,color .2s,transform .2s}
+.shb svg{flex:none}
+.shb:hover{background:var(--green);color:var(--navy)}
+.shb:active{transform:scale(.96)}
+.shb:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.shf{margin-top:16px;height:44px;padding:0 16px}
+@media (max-width:600px){.hr .shb span{display:none}.hr .shb{padding:0;width:40px}}
+@media (max-width:480px){.hr{gap:6px}.hd1 .btn{padding:12px 10px;font-size:.66rem}.lg-h{max-width:calc(100vw - 214px)}}
+.sgf{margin:8px 0 0;max-width:460px}
+.sgr{display:flex;gap:8px;align-items:stretch}
+.sgf textarea{flex:1;min-width:0;min-height:52px;max-height:130px;resize:none;background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.32);border-radius:2px;padding:12px;font:500 .85rem/1.35 Montserrat,"Montserrat Fallback",Arial,sans-serif;transition:border-color .2s,background .2s}
+.sgf textarea::placeholder{color:rgba(255,255,255,.55)}
+.sgf textarea:focus{outline:0;border-color:var(--green);background:rgba(255,255,255,.12)}
+@media (pointer:coarse){.sgf textarea{font-size:16px}}
+.fl .sgf .sgb{display:inline-flex;align-items:center;justify-content:center;flex:none;background:var(--green);color:var(--navy);font:700 .8rem/1 Montserrat,"Montserrat Fallback",Arial,sans-serif;letter-spacing:.03em;text-transform:uppercase;text-decoration:none;text-align:center;padding:0 18px;border-radius:2px}
+.fl .sgf .sgb:disabled{opacity:.6;cursor:wait}
+.sgt:empty{display:none}.sgt{margin-top:8px}
+.sgs{min-height:1.3em;margin-top:8px;font-size:.8rem;font-weight:600}
+.sgs.ok{color:var(--green)}.sgs.bad{color:#ff7a7a}
+.sgh{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;opacity:0}
+.sgv{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+#toast{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom,0px));z-index:60;max-width:calc(100vw - 32px);overflow-wrap:anywhere;transform:translate(-50%,16px);opacity:0;pointer-events:none;background:var(--navy);color:#fff;border-left:4px solid var(--green);border-radius:2px;padding:12px 16px;font:600 .85rem/1.3 Montserrat,"Montserrat Fallback",Arial,sans-serif;box-shadow:0 10px 26px rgba(0,0,0,.35);transition:opacity .25s,transform .25s}
+#toast.on{opacity:1;transform:translate(-50%,0)}
 </style>
 <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
 <script defer src="/_vercel/insights/script.js"></script>
 </head>
 <body>
-<div id="mnt" role="dialog" aria-modal="true" aria-labelledby="mnt-t" aria-describedby="mnt-d">
-<div class="mnt-card">
-<div class="mnt-top" aria-hidden="true"><i style="background:#0A5CFF"></i><i style="background:#00F03C"></i><i style="background:#F000F0"></i><i style="background:#fff"></i></div>
-<div class="mnt-in">
-<span class="logo"><i class="mark">%</i>Mi <b>UP</b>onderado</span><br>
-<h2 id="mnt-t"><span>Estamos preparando</span><span><b>algo mejor.</b></span></h2>
-<p id="mnt-d">Mi UPonderado está evolucionando. Estamos trabajando en una nueva versión para que calcular tu ponderado sea más fácil y rápido. La página sigue activa y volvemos muy pronto.</p>
-<div class="mnt-pr"><div class="mnt-pl"><span>Avance de las mejoras</span><b id="mnt-n">97%</b></div>
-<div class="mnt-tr" role="progressbar" aria-label="Avance de las mejoras" aria-valuemin="0" aria-valuemax="100" aria-valuenow="97"><div class="mnt-fl"><i></i></div></div>
-<div class="mnt-sc" aria-hidden="true"><span>Inicio</span><span>Listo</span></div></div>
-<span class="mnt-th">Gracias por tu comprensión</span>
-<div class="mnt-ig"><a href="https://www.instagram.com/matiastf_/" target="_blank" rel="noopener" aria-label="Instagram de @matiastf_"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6" fill="currentColor"/></svg><span>@matiastf_</span></a><a href="https://www.instagram.com/fabi_mvi/" target="_blank" rel="noopener" aria-label="Instagram de @fabi_mvi"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6" fill="currentColor"/></svg><span>@fabi_mvi</span></a></div>
-</div>
-</div>
-</div>
-
 
 <div id="v-welcome" class="wel"><div class="wrap wc">
-<h1 class="wt"><span class="t1 rv" style="--i:1">Bienvenido a</span><span class="t2 rv" style="--i:2">Mi <b>UP</b>onderado</span></h1>
-<div class="strip"><i style="background:#0A5CFF"></i><i style="background:#00F03C"></i><i style="background:#F000F0"></i><i style="background:#fff"></i></div>
-<button class="btn lg rv" id="go" style="--i:5">Empezar</button>
+<div class="wt wtop"><span class="t1 mr" style="--i:1">Bienvenido a</span></div>
+<h1 class="wmid"><span class="lgw rv" style="--i:2"><i class="halo"></i><img class="lg-v" data-fb="v" src="https://i.postimg.cc/Th8SXWfd/Recurso-1.png" alt="My PonderUP" decoding="async" fetchpriority="high"><i class="sp" style="left:2%;top:12%;--s:20px;--d:0.2s"></i><i class="sp" style="left:95%;top:22%;--s:16px;--d:1.1s"></i><i class="sp" style="left:88%;top:86%;--s:22px;--d:1.9s"></i><i class="sp" style="left:8%;top:90%;--s:14px;--d:0.7s"></i><i class="sp" style="left:50%;top:-6%;--s:16px;--d:1.5s"></i></span></h1>
+<div class="wbot"><div class="strip"><i style="background:#0A5CFF"></i><i style="background:#00F03C"></i><i style="background:#F000F0"></i><i style="background:#fff"></i></div>
+<div class="cta rv" style="--i:5"><button type="button" class="btn xl" id="go">Empezar</button></div></div>
 </div>
-<a class="wm" href="https://www.instagram.com/matiastf_/" target="_blank" rel="noopener" aria-label="Instagram de @matiastf_"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6" fill="currentColor"/></svg><span>@matiastf_</span></a></div>
+<div class="wm"><a href="https://www.instagram.com/matiastf_/" target="_blank" rel="noopener" aria-label="Instagram de @matiastf_"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6" fill="currentColor"/></svg><span>@matiastf_</span></a><a href="https://www.instagram.com/fabi_mvi/" target="_blank" rel="noopener" aria-label="Instagram de @fabi_mvi"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6" fill="currentColor"/></svg><span>@fabi_mvi</span></a></div></div>
+
+
 
 <div id="v-pick" class="wel" hidden><div class="wrap wc">
-<h1 class="wt eq"><span class="t1 rv" style="--i:0">Elige tu</span><span class="t2 rv" style="--i:1">curso</span></h1>
-<div class="pl" id="plist"></div>
+<h1 class="wt eq"><span class="t1 mr" style="--i:0">Elige tu</span><span class="t2 mr" style="--i:1">curso</span></h1>
+<div class="pgs" id="plist"></div>
 </div>
-<a class="wm" href="https://www.instagram.com/matiastf_/" target="_blank" rel="noopener" aria-label="Instagram de @matiastf_"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6" fill="currentColor"/></svg><span>@matiastf_</span></a></div>
+<div class="wm"><a href="https://www.instagram.com/matiastf_/" target="_blank" rel="noopener" aria-label="Instagram de @matiastf_"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6" fill="currentColor"/></svg><span>@matiastf_</span></a><a href="https://www.instagram.com/fabi_mvi/" target="_blank" rel="noopener" aria-label="Instagram de @fabi_mvi"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6" fill="currentColor"/></svg><span>@fabi_mvi</span></a></div></div>
 
 <div id="v-tool" hidden>
-<div class="bar"><div class="wrap hd1"><button class="logo lb" id="home" aria-label="Volver al inicio"><i class="mark">%</i>Mi <b>UP</b>onderado</button><a class="btn" href="#faq">Cómo funciona</a></div></div>
+<div class="bar"><div class="wrap hd1"><button type="button" class="logo lb" id="home" aria-label="Volver al inicio"><img class="lg-h" data-fb="h" src="https://i.postimg.cc/xqr7Sbn9/Recurso-2.png" alt="My PonderUP" decoding="async" fetchpriority="low"></button><div class="hr"><button type="button" class="shb" data-share aria-label="Compartir esta página"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg><span>Compartir</span></button><a class="btn" href="#faq">Cómo funciona</a></div></div></div>
 <header class="hd">
-<div class="wrap cs rv" style="--i:1"><button id="cbtn" aria-haspopup="listbox" aria-expanded="false"><span class="cq">Curso:</span><span class="cv" id="cval"></span><i class="chev"></i></button><div id="clist" role="listbox" hidden></div></div>
+<div class="wrap cs rv" style="--i:1"><button id="cbtn" type="button" aria-controls="clist" aria-expanded="false"><span class="cq">Curso:</span><span class="cv" id="cval"></span><i class="chev"></i></button><div id="clist" hidden></div></div>
 </header>
-<section class="hero"><div class="hdeco" aria-hidden="true"><i class="dt" style="width:16px;height:16px;background:#00F03C;top:12%;right:8%;--x:-10px;--y:14px;--t:7s"></i><i class="dt" style="width:11px;height:11px;background:#0A5CFF;top:27%;right:21%;--x:8px;--y:-14px;--t:9s;--d:-3s"></i><b class="cp" style="top:9%;right:21%;min-width:38px;height:38px;font-size:.9rem;--t:8s;--d:-2s">11</b><i class="sq" style="top:34%;right:6%;width:34px;height:34px;border-width:2px"></i></div><div class="wrap">
-<h1 class="rv" style="--i:2"><span class="t1">Calcula tu ponderado de</span><span class="t2" id="ctitle"></span></h1>
+<section class="hero"><div class="hdeco" aria-hidden="true"><i class="dt" style="width:16px;height:16px;background:#00F03C;top:12%;right:8%;--x:-10px;--y:14px;--t:7s"></i><i class="dt" style="width:11px;height:11px;background:#0A5CFF;top:27%;right:21%;--x:8px;--y:-14px;--t:9s;--d:-3s"></i><i class="sq" style="top:34%;right:6%;width:34px;height:34px;border-width:2px"></i></div><div class="wrap">
+<h1><span class="t1 mr" style="--i:1">Calcula tu ponderado de</span><span class="t2 mr" id="ctitle" style="--i:2"></span></h1>
 <div class="strip"><i style="background:#0A5CFF"></i><i style="background:#00F03C"></i><i style="background:#F000F0"></i><i style="background:#fff"></i></div>
 <div class="wp"><div class="wb" id="wbar"></div><div class="lg" id="lgd"></div><div class="zm" id="zm"></div></div>
 </div></section>
 <main class="wrap body">
 <h2 class="it rv" style="--i:3">Ingresa tus notas</h2>
+<p class="nota rv" style="--i:4"><i>i</i><span><b>Nota:</b> <span class="nl">Ingresa tus notas tal como las obtuviste. El sistema ya redondea por defecto las que corresponden y deja las demás sin redondear.</span><span class="ns">Ingresa tus notas tal cual; el sistema ya redondea las que corresponden.</span></span></p>
 <section id="tree"></section>
 <section id="sum"><div class="sm1"><div><b id="sl1"></b><div class="mut" id="sl2"></div></div><div id="big"></div></div><div class="pbar"><i id="pf"></i><u id="mk" role="slider" tabindex="0" aria-label="Nota mínima para aprobar" aria-valuemin="0" aria-valuemax="20"><b id="mkt"></b></u></div><div class="sm2"><span id="pt"></span><label class="minl">Nota mínima <input type="number" id="pm" aria-label="Nota mínima para aprobar" min="0" max="20" step="any" value="11"></label></div></section>
-<p class="tip"><b>TIP:</b> arrastra la línea negra de la barra o escribe la nota mínima que deseas alcanzar, y la tabla te mostrará qué necesitas sacar.</p>
+<p class="tip"><b>TIP:</b> Arrastra la línea o escribe tu nota mínima y la tabla se ajusta.</p>
 <section id="cb"></section>
 </main>
 <section class="faq" id="faq"><div class="wrap">
@@ -330,65 +717,207 @@ footer{border-top:1px solid rgba(255,255,255,.2);padding:28px 0 36px;font-size:.
 <details class="qa"><summary><span class="no">03</span><span class="q">¿Qué significa "Por rendir"?</span><i class="pm"></i></summary><div class="ans"><p>Es una evaluación que aún no has dado. Si la dejas en blanco, cuenta como 0 en "Mi promedio hasta ahora" y la tabla te dice qué necesitas sacar en ella. Si escribes un 0, cuenta como una nota ya rendida.</p></div></details>
 <details class="qa"><summary><span class="no">04</span><span class="q">¿Es una herramienta oficial?</span><i class="pm"></i></summary><div class="ans"><p>No. Es una calculadora para planificar tus notas. El resultado oficial es el que publica la universidad.</p></div></details>
 </div></section>
-<footer><div class="wrap fc"><div><span class="logo">Mi <b>UP</b>onderado</span><p>Herramienta no oficial. Los pesos y reglas salen de los reglamentos de cada curso; si algo no coincide, vale lo que indique tu profesor o la universidad.</p></div><div class="fl" id="fl"></div><div class="fl"><b>Comentarios o sugerencias</b><a class="ig" href="https://www.instagram.com/matiastf_/" target="_blank" rel="noopener" aria-label="Instagram de @matiastf_"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6" fill="currentColor"/></svg><span>@matiastf_</span></a></div></div></footer>
+<footer><div class="wrap fc"><div><img class="lg-f" data-fb="f" src="https://i.postimg.cc/Th8SXWfd/Recurso-1.png" alt="My PonderUP" decoding="async" fetchpriority="low"><p>Esta es una herramienta no oficial. Usamos los pesos y reglas de los reglamentos de cada curso, pero si notas alguna diferencia, lo que valida tu profesor o la universidad es lo que cuenta.</p><button type="button" class="shb shf" data-share><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg><span>Compartir página</span></button></div><div class="fl" id="fl"></div><div class="fl"><b>Comentarios o sugerencias</b><form class="sgf" id="sgf" action="/api/sugerencia" method="POST"><div class="sgr"><label class="sgv" for="sgm">Tu comentario o sugerencia</label><textarea id="sgm" name="message" rows="2" maxlength="1000" required placeholder="¿Falta un curso o tienes una sugerencia?"></textarea><button type="submit" class="btn sgb" id="sgb">Enviar</button></div><input class="sgh" type="text" name="_gotcha" tabindex="-1" autocomplete="off" aria-hidden="true"><div class="sgt" id="sgt"></div><div class="sgs" id="sgs" role="status" aria-live="polite"></div></form><div class="igs"><a class="ig" href="https://www.instagram.com/matiastf_/" target="_blank" rel="noopener" aria-label="Instagram de @matiastf_"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6" fill="currentColor"/></svg><span>@matiastf_</span></a><a class="ig" href="https://www.instagram.com/fabi_mvi/" target="_blank" rel="noopener" aria-label="Instagram de @fabi_mvi"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6" fill="currentColor"/></svg><span>@fabi_mvi</span></a></div></div></div></footer>
 </div>
 
+
+<div id="v-fi" hidden>
+<div class="bar"><div class="wrap hd1"><button type="button" class="logo lb" id="home2" aria-label="Volver al inicio"><img class="lg-h" data-fb="h" src="https://i.postimg.cc/xqr7Sbn9/Recurso-2.png" alt="My PonderUP" decoding="async" fetchpriority="low"></button><a class="btn" href="#fifaq">Cómo funciona</a></div></div>
+<header class="hd"><div class="wrap"><button type="button" class="fback" data-pick="1"><small>Ir a</small><b>Ponderado de un curso</b></button></div></header>
+<section class="hero"><div class="hdeco" aria-hidden="true"><i class="dt" style="width:16px;height:16px;background:#00F03C;top:12%;right:8%;--x:-10px;--y:14px;--t:7s"></i><i class="dt" style="width:11px;height:11px;background:#0A5CFF;top:27%;right:21%;--x:8px;--y:-14px;--t:9s;--d:-3s"></i><i class="sq" style="top:34%;right:6%;width:34px;height:34px;border-width:2px"></i></div><div class="wrap">
+<h1><span class="t1 mr" style="--i:1">Calcula tu</span><span class="t2 mr" style="--i:2">Factor de inscripción</span></h1>
+<div class="strip"><i style="background:#0A5CFF"></i><i style="background:#00F03C"></i><i style="background:#F000F0"></i><i style="background:#fff"></i></div>
+<div class="wp"><div class="wb" id="fbar"><span style="flex:1 1 0;--wb:#0A5CFF;--wc:#fff"></span><span style="flex:1 1 0;--wb:#00F03C;--wc:#061F47"></span><span style="flex:1 1 0;--wb:#F000F0;--wc:#061F47"></span></div>
+<div class="lg"><span style="--wb:#0A5CFF">Promedio × 10</span><span style="--wb:#00F03C" id="flg-cr">Créditos</span><span style="--wb:#F000F0">Bonificaciones</span></div></div>
+</div></section>
+<main class="wrap body">
+<h2 class="it">¿Es tu primer ciclo?</h2>
+<p class="nota"><i>i</i><span>La fórmula cambia un poco: en tu primer ciclo sumas tus créditos matriculados; desde el segundo, tus créditos acumulados.</span></p>
+<div class="fch2" role="radiogroup" aria-label="¿Es tu primer ciclo?">
+<button type="button" role="radio" aria-checked="false" data-first="1"><b>Sí, primer ciclo</b><span>Es la primera vez que saco mi FI</span></button>
+<button type="button" role="radio" aria-checked="false" data-first="0"><b>No, ya cursé ciclos antes</b><span>Segundo ciclo en adelante</span></button>
+</div>
+<div id="fi-main" hidden>
+<p class="nota"><i>f</i><span><b>Fórmula:</b> <span id="ffor"></span></span></p>
+<h2 class="it">Cursos del semestre</h2>
+<p class="nota"><i>i</i><span>Agrega los cursos que llevaste y la nota final de cada uno. Las nivelaciones también cuentan: Matemáticas vale 4 créditos, Lenguaje 3 e Informática 3.</span></p>
+<div class="fgrid">
+<div class="fsl"><label for="fi-car">Tu carrera</label><select id="fi-car" class="fsel"></select><small>Con tu carrera aparecen tus cursos con sus créditos ya puestos.</small></div>
+<div class="fsl"><label for="fi-add">Agregar curso</label><select id="fi-add" class="fsel"></select><small>Si tu curso no aparece, elige «Otro curso» y escribe sus créditos.</small></div>
+</div>
+<div class="fbk" id="fi-card">
+<div class="fhd" id="fhd" hidden><span>Curso</span><span>Créditos</span><span>Nota</span><span>N × C</span><span></span></div>
+<div id="fi-rows"></div>
+<div class="fempty" id="fi-empty">Aún no agregaste cursos. Elige uno en la lista de arriba.</div>
+<div class="ftot" id="fi-tot"></div>
+</div>
+<h2 class="it" id="fi-h-cr">Créditos</h2>
+<div class="fbk fcrd" id="fi-cr-first" hidden>
+<label>Créditos matriculados</label>
+<div class="fcv"><b id="fi-crv">0</b></div>
+<small>Es la suma de los créditos de tus cursos con nota. Se calcula solo.</small>
+</div>
+<div class="fbk fcrd" id="fi-cr-next" hidden>
+<label for="fi-ca">Créditos académicos acumulados</label>
+<input class="fin" id="fi-ca" type="number" min="0" max="400" step="1" inputmode="numeric" placeholder="Ej. 32" aria-label="Créditos académicos acumulados">
+<small>Hasta el último semestre que cursaste, incluido. Escribe solo los créditos que cuentan para el FI.</small>
+</div>
+<h2 class="it">Bonificaciones</h2>
+<p class="nota"><i>i</i><span>Marca solo las que conseguiste. Las que no marques no suman, y no hay tope.</span></p>
+<div class="fbg" id="fi-bon"></div>
+<p class="fbs" id="fi-bons"></p>
+<section id="fisum" aria-live="polite"><div class="sm1"><div><b id="fl1">Mi factor de inscripción</b><div class="mut" id="fl2">Promedio × 10 + créditos + bonificaciones</div></div><div id="fibig" class="na">—</div></div>
+<div class="fbd">
+<div class="fbr sub"><span>Suma de créditos con nota</span><b id="fb-sc">—</b></div>
+<div class="fbr sub"><span>Suma de nota × créditos</span><b id="fb-sn">—</b></div>
+<div class="fbr"><span>Promedio del semestre</span><b id="fb-avg">—</b></div>
+<div class="fbr"><span>Promedio × 10</span><b id="fb-base">—</b></div>
+<div class="fbr"><span id="fb-cl">Créditos</span><b id="fb-cr">—</b></div>
+<div class="fbr"><span>Bonificaciones</span><b id="fb-bon">—</b></div>
+<div class="fbr tot"><span>Factor de inscripción</span><b id="fb-fi">—</b></div>
+</div>
+<p class="msg" id="fimsg" hidden></p>
+<button type="button" class="btn" id="firs">Empezar de nuevo</button>
+</section>
+<p class="tip"><b>TIP:</b> Mientras no tengas todas las notas, agrega solo los cursos que ya tienen nota para ver cómo va tu FI.</p>
+</div>
+</main>
+<section class="faq" id="fifaq"><div class="wrap">
+<h2>Cómo funciona</h2>
+<details class="qa"><summary><span class="no">01</span><span class="q">¿Cómo se calcula el factor de inscripción?</span><i class="pm"></i></summary><div class="ans"><p>Es la suma de tres partes: tu promedio del último semestre multiplicado por 10, tus créditos y tus bonificaciones. Desde el segundo ciclo usas tus créditos académicos acumulados; en el primero, tus créditos matriculados.</p><p>Ejemplo: promedio 14.33 × 10 = 143.33, más 32 créditos acumulados y 16 puntos de bonificación = 191.33.</p><button type="button" class="btn" id="fiex">Probar con este ejemplo</button></div></details>
+<details class="qa"><summary><span class="no">02</span><span class="q">¿Cómo se calcula el promedio del semestre?</span><i class="pm"></i></summary><div class="ans"><p>Es un promedio ponderado por créditos: multiplicas la nota de cada curso por sus créditos, sumas todo y lo divides entre la suma de créditos. Las nivelaciones también entran, con 4 créditos en Matemáticas, 3 en Lenguaje y 3 en Informática.</p></div></details>
+<details class="qa"><summary><span class="no">03</span><span class="q">¿Qué pasa en mi primer ciclo?</span><i class="pm"></i></summary><div class="ans"><p>Todavía no tienes créditos acumulados, así que se suman tus créditos matriculados: la suma de los créditos de los cursos de tu primer semestre.</p></div></details>
+<details class="qa"><summary><span class="no">04</span><span class="q">¿Cuánto suman las bonificaciones?</span><i class="pm"></i></summary><div class="ans"><p>Encuesta, Intercambio, Matrícula preventiva y Deportista suman 16 puntos cada una. REA y REDA suman 8 puntos cada una. La encuesta es la de docentes y encargados de práctica.</p><p>No hay tope: marca las que conseguiste y se suman a tu FI.</p></div></details>
+<details class="qa"><summary><span class="no">05</span><span class="q">¿Se redondea el resultado?</span><i class="pm"></i></summary><div class="ans"><p>No. El promedio y el FI no se redondean al entero. Verás decimales solo cuando el resultado los tenga, con un máximo de dos.</p></div></details>
+<details class="qa"><summary><span class="no">06</span><span class="q">¿Es una herramienta oficial?</span><i class="pm"></i></summary><div class="ans"><p>No. Es una calculadora para que te hagas una idea de tu FI. El valor oficial es el que publica la universidad.</p></div></details>
+</div></section>
+<footer><div class="wrap fc"><div><img class="lg-f" data-fb="f" src="https://i.postimg.cc/Th8SXWfd/Recurso-1.png" alt="My PonderUP" decoding="async" fetchpriority="low"><p>Esta es una herramienta no oficial. Calculamos tu factor de inscripción con la fórmula que explica la universidad, pero el valor que cuenta es el que publica la universidad.</p></div><div class="fl" id="ffl"><b>Otras herramientas</b><button type="button" data-pick="1">Ponderado de un curso</button></div><div class="fl"><b>Comentarios o sugerencias</b><div class="igs"><a class="ig" href="https://www.instagram.com/matiastf_/" target="_blank" rel="noopener" aria-label="Instagram de @matiastf_"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6" fill="currentColor"/></svg><span>@matiastf_</span></a><a class="ig" href="https://www.instagram.com/fabi_mvi/" target="_blank" rel="noopener" aria-label="Instagram de @fabi_mvi"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6" fill="currentColor"/></svg><span>@fabi_mvi</span></a></div></div></div></footer>
+</div>
+
+<div class="tgw off" id="tgw"><button type="button" class="tg" id="tg" role="switch" aria-checked="false" aria-label="Modo oscuro"><svg class="ti s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.6M12 18.9v2.6M2.5 12h2.6M18.9 12h2.6M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></svg><svg class="ti m" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.5 14.2A8.6 8.6 0 0 1 9.8 3.5a.6.6 0 0 0-.8-.7A9.6 9.6 0 1 0 21.2 15a.6.6 0 0 0-.7-.8z"/></svg><span class="tk"><svg class="s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.6M12 18.9v2.6M2.5 12h2.6M18.9 12h2.6M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></svg><svg class="m" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.5 14.2A8.6 8.6 0 0 1 9.8 3.5a.6.6 0 0 0-.8-.7A9.6 9.6 0 1 0 21.2 15a.6.6 0 0 0-.7-.8z"/></svg></span></button></div>
+<div id="fimini" aria-hidden="true"><span class="ml">Mi factor de inscripción</span><b id="fmbig" class="na">—</b></div>
+<div id="toast" role="status" aria-live="polite"></div>
 <div id="mini" aria-hidden="true"><span class="ml">Mi promedio hasta ahora</span><i class="mb"><span id="mpf"></span><span id="mmk"></span></i><b id="mbig"></b></div>
 
 <script>
 const $=id=>document.getElementById(id),clone=o=>JSON.parse(JSON.stringify(o));
-const rnd=x=>Math.floor(x+.5+1e-9),fmt=x=>String(Math.round(x*100)/100),fg=x=>x.toFixed(1).replace(/\.0$/,"");
+/* FACTOR DE INSCRIPCION: false = oculto (el codigo y los datos siguen en este archivo). true = visible. */
+const FI_ACTIVO=false;
+/* ===== ANALITICAS (PostHog) =====
+   Para activarlas: crea un proyecto en posthog.com, pega abajo tu clave (empieza con phc_) y elige la region ("us" o "eu").
+   Mientras PH_KEY este vacia no se envia nada. Solo se envian eventos (que curso, que pantalla, que boton); NUNCA las notas. */
+const idle=f=>("requestIdleCallback" in window)?requestIdleCallback(f,{timeout:4000}):setTimeout(f,1500);
+const PH_KEY="phc_q6PgfjjfSHRyMd65DY3vcoayYPk5Siv4oX2t3zP6bzxj",PH_REGION="us";
+const PH_HOST=PH_REGION==="eu"?"https://eu.i.posthog.com":"https://us.i.posthog.com";
+const phQ=[];let phOn=false,phErr=0;
+const track=(n,p)=>{if(!PH_KEY)return;try{if(phOn)posthog.capture(n,p);else phQ.push([n,p])}catch(_){}};
+(()=>{if(!PH_KEY)return;
+ const go=()=>{try{const sc=document.createElement("script");sc.async=true;
+ sc.src=PH_HOST.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js";
+ sc.onload=()=>{try{posthog.init(PH_KEY,{api_host:PH_HOST,person_profiles:"identified_only",capture_pageview:true,capture_pageleave:true,autocapture:true,
+   capture_heatmaps:true,respect_dnt:true,disable_surveys:true,session_recording:{maskAllInputs:true,maskTextSelector:"#sgm"}});
+   posthog.register({app:"myponderup",pantalla_ancho:window.innerWidth});
+   phOn=true;phQ.splice(0).forEach(([n,p])=>posthog.capture(n,p))}catch(_){}};
+ document.head.appendChild(sc)}catch(_){}};
+ /* PostHog se carga cuando la pagina ya termino de cargar y el navegador esta libre; los eventos mientras tanto quedan en cola */
+ if(document.readyState==="complete")idle(go);else window.addEventListener("load",()=>idle(go),{once:true});
+ window.addEventListener("error",e=>{if(phErr++<5)track("error_js",{mensaje:String(e.message).slice(0,120)})})})();
+const seenFirst=new Set(),seenCombo=new Set(),seenSec=new Set();let calcTm=0;
+const trackCombo=()=>{if(view==="tool"&&cur&&!seenCombo.has(cur)&&$("cb").innerHTML.indexOf("<table")>-1){seenCombo.add(cur);track("combos_vistos",{curso:cur,pendientes:pend().length})}};
+const rnd=x=>Math.floor(x+.5+1e-9),fmt=x=>String(Math.round((x+1e-9)*100)/100);
 const T=100/3,SC=["#0A5CFF","#00F03C","#F000F0","#FFFFFF"],WB=[["#0A5CFF","#fff"],["#00F03C","#061F47"],["#F000F0","#061F47"]];
 const C={
-mat:{n:"Matemáticas",i:"La Nota de Trabajo sale de PC1 a PC4 (20%, 20%, 30% y 30%) y no redondea las prácticas. La Nota de Trabajo, el parcial y el final se redondean al entero.",root:{ch:[
+mat:{n:"Matemáticas",rf:1,i:"La Nota de Trabajo (50%) sale de PC1 a PC4, que valen 10%, 10%, 15% y 15% del curso. El examen parcial pesa 20% y el final 30%. Las prácticas no se redondean; la Nota de Trabajo, el parcial, el final y el promedio final se redondean al entero (el .5 sube).",root:{ch:[
  {id:"nt",n:"Nota de Trabajo",w:50,r:1,ch:[{id:"pc1",n:"PC1",w:20},{id:"pc2",n:"PC2",w:20},{id:"pc3",n:"PC3",w:30},{id:"pc4",n:"PC4",w:30}]},
  {id:"pa",n:"Examen Parcial",w:20,r:1},{id:"fi",n:"Examen Final",w:30,r:1}]}},
-len:{n:"Lenguaje",i:"Las prácticas PC1, PC2 y PC3 valen lo mismo y se promedian. El reglamento no indica redondeos.",root:{ch:[
+len:{n:"Lenguaje",rf:1,i:"El promedio de prácticas pesa 40% y se forma con PC1, PC2 y PC3, que valen lo mismo (13.33% cada una). El examen parcial y el final pesan 30% cada uno. El parcial, el final y el promedio final se redondean al entero (el .5 sube).",root:{ch:[
  {id:"pr",n:"Promedio de Prácticas",w:40,ch:[{id:"pc1",n:"PC1",w:T},{id:"pc2",n:"PC2",w:T},{id:"pc3",n:"PC3",w:T}]},
- {id:"pa",n:"Examen Parcial",w:30},{id:"fi",n:"Examen Final",w:30}]}},
-inf:{n:"Informática",i:"La Nota de Trabajo mezcla PC1 (35%), PC2 (45%) y el promedio de 3 controles (20%), y se redondea al entero antes de entrar al promedio final.",root:{ch:[
+ {id:"pa",n:"Examen Parcial",w:30,r:1},{id:"fi",n:"Examen Final",w:30,r:1}]}},
+inf:{n:"Informática",rf:1,i:"La Nota de Trabajo (35%) mezcla PC1 (12.25%), PC2 (15.75%) y el promedio de 3 controles (7% en total), y se redondea al entero antes de entrar al promedio final. El parcial pesa 30% y el final 35%; ambos y el promedio final también se redondean al entero (el .5 sube).",root:{ch:[
  {id:"nt",n:"Nota de Trabajo",w:35,r:1,ch:[{id:"pc1",n:"PC1",w:35},{id:"pc2",n:"PC2",w:45},
   {id:"co",n:"Promedio de Controles",w:20,ch:[{id:"c1",n:"Control 1",s:"C1",w:T},{id:"c2",n:"Control 2",s:"C2",w:T},{id:"c3",n:"Control 3",s:"C3",w:T}]}]},
- {id:"pa",n:"Examen Parcial",w:30},{id:"fi",n:"Examen Final",w:35}]}},
-con:{n:"Fundamentos de Contabilidad",pre:"",i:"Trabajos pesa 40% y se arma con Controles de Lectura (25%), Prácticas Calificadas (70%) y Participación (5%). El parcial y el final pesan 30% cada uno. No se indican redondeos.",root:{ch:[
+ {id:"pa",n:"Examen Parcial",w:30,r:1},{id:"fi",n:"Examen Final",w:35,r:1}]}},
+con:{n:"Fundamentos de Contabilidad",pre:"",rf:1,i:"Trabajos pesa 40% y se arma con Prácticas Calificadas (28%), Controles de Lectura (10%) y Participación (2%). El parcial y el final pesan 30% cada uno. El parcial, el final y el promedio final se redondean al entero (el .5 sube).",root:{ch:[
  {id:"tr",n:"Trabajos",w:40,ch:[
   {id:"pc",n:"Prácticas Calificadas",w:70,ch:[{id:"pc1",n:"PC1",w:20},{id:"pc2",n:"PC2",w:20},{id:"pc3",n:"PC3",w:20},{id:"pc4",n:"PC4",w:20},{id:"pc5",n:"PC5",w:20}]},
   {id:"cl",n:"Controles de Lectura",w:25,ch:[{id:"cl1",n:"CL1",w:50},{id:"cl2",n:"CL2",w:50}]},
   {id:"ap",n:"Participación",s:"P",w:5,b:1}]},
- {id:"pa",n:"Examen Parcial",w:30},{id:"fi",n:"Examen Final",w:30}]}}
+ {id:"pa",n:"Examen Parcial",w:30,r:1},{id:"fi",n:"Examen Final",w:30,r:1}]}},
+fce:{n:"Fundamentos de Ciencias Empresariales",pre:"",rf:1,i:"Los porcentajes de cada nota son sobre el 100% del curso. La Nota de Trabajo (40%) reúne 4 controles de lectura (20%), 5 notas de participación (10%) y 3 avances del trabajo final (10%). El Examen Final (35%) se compone del trabajo final escrito (5%), la exposición (10%) y el examen final escrito (20%). La Nota de Trabajo, el Examen Parcial, el Examen Final y la nota final se redondean al entero, y el .5 sube.",root:{ch:[
+ {id:"nt",n:"Nota de Trabajo",w:40,r:1,ch:[
+  {id:"cl",n:"Controles de Lectura",w:50,ch:[{id:"c1",n:"Control 1",s:"C1",w:25},{id:"c2",n:"Control 2",s:"C2",w:25},{id:"c3",n:"Control 3",s:"C3",w:25},{id:"c4",n:"Control 4",s:"C4",w:25}]},
+  {id:"pr",n:"Participación en Clase",w:25,ch:[{id:"pe",n:"Participación 1",s:"P1",w:20},{id:"ca",n:"Participación 2",s:"P2",w:20},{id:"e3",n:"Participación 3",s:"P3",w:20},{id:"e4",n:"Participación 4",s:"P4",w:20},{id:"e5",n:"Participación 5",s:"P5",w:20}]},
+  {id:"av",n:"Avances del Trabajo Final",w:25,ch:[{id:"a1",n:"Avance 1",s:"A1",w:T},{id:"a2",n:"Avance 2",s:"A2",w:T},{id:"a3",n:"Avance 3",s:"A3",w:T}]}]},
+ {id:"pa",n:"Examen Parcial",w:25,r:1},
+ {id:"ef",n:"Examen Final",w:35,r:1,ch:[{id:"tf",n:"Trabajo Final Escrito",w:100/7},{id:"ex",n:"Exposición del Trabajo Final",w:200/7},{id:"fe",n:"Examen Final Escrito",w:400/7}]}]}},
+int:{n:"Introducción a la Ingeniería",pre:"",rf:1,i:"La Nota de Trabajo (45%) reúne el Proyecto Empresarial (18%, nota grupal), Trabajos de Clase (9%, con PC1 y PC2 de 4.5% cada una) y Laboratorios (18%). Cada laboratorio y la Presentación Final valen 3.6% del curso y su nota es la suma de sus partes. El parcial pesa 25% y el final 30%. El parcial, el final y el promedio final se redondean al entero (el .5 sube); lo demás no se redondea.",root:{ch:[
+ {id:"nt",n:"Nota de Trabajo",w:45,ch:[
+  {id:"pe",n:"Proyecto Empresarial",s:"Proyecto",w:40,b:1},
+  {id:"tc",n:"Trabajos de Clase",w:20,ch:[{id:"pc1",n:"PC1",w:50},{id:"pc2",n:"PC2",w:50}]},
+  {id:"lb",n:"Laboratorios",w:40,ch:[
+   {id:"l1",n:"Laboratorio 1",s:"L1",z:1,w:20,ch:[{id:"pz",n:"Pinza",mx:2.5,w:12.5,d:""},{id:"ga",n:"Gancho",mx:3.5,w:17.5,d:""},{id:"tz",n:"Taza",mx:4,w:20,d:""},{id:"fm",n:"Fase Empatizar",mx:10,w:50,d:""}]},
+   {id:"l2",n:"Laboratorio 2",s:"L2",z:1,w:20,ch:[{id:"gu",n:"Guía de Impresión 3D",mx:5,w:25,d:""},{id:"ei",n:"Evaluación Individual de Laboratorio",mx:5,w:25,d:""},{id:"fd",n:"Fase Definir",mx:10,w:50,d:""}]},
+   {id:"l3",n:"Laboratorio 3",s:"L3",z:1,w:20,ch:[{id:"rb",n:"Robot",mx:6,w:30,d:""},{id:"hg",n:"Hongo",mx:4,w:20,d:""},{id:"fid",n:"Fase Idear",mx:10,w:50,d:""}]},
+   {id:"l4",n:"Laboratorio 4",s:"L4",z:1,w:20,ch:[{id:"di",n:"Dinosaurio",mx:10,w:50,d:""},{id:"fp",n:"Fase Prototipar",mx:10,w:50,d:""}]},
+   {id:"pf",n:"Presentación Final",s:"PF",w:20,b:1}]}]},
+ {id:"pa",n:"Examen Parcial",w:25,r:1},{id:"fi",n:"Examen Final",w:30,r:1}]}},
+mat1:{n:"Matemáticas I",pre:"",rf:1,i:"Trabajos pesa 40% y se arma con 2 controles (2% cada uno, 4% en total) y 4 prácticas calificadas (9% cada una, 36% en total). El examen parcial y el final pesan 30% cada uno. El parcial, el final y el promedio final se redondean al entero (el .5 sube).",root:{ch:[
+ {id:"tr",n:"Trabajos",w:40,ch:[
+  {id:"ct",n:"Controles",w:10,ch:[{id:"c1",n:"Primer Control",s:"C1",w:50},{id:"c2",n:"Segundo Control",s:"C2",w:50}]},
+  {id:"pc",n:"Prácticas Calificadas",w:90,ch:[{id:"pc1",n:"PC1",w:25},{id:"pc2",n:"PC2",w:25},{id:"pc3",n:"PC3",w:25},{id:"pc4",n:"PC4",w:25}]}]},
+ {id:"pa",n:"Examen Parcial",w:30,r:1},{id:"fi",n:"Examen Final",w:30,r:1}]}},
+len1:{n:"Lenguaje I",pre:"",rf:1,i:"Trabajos pesa 35% y está formado por 3 prácticas calificadas que valen lo mismo (11.67% cada una). El examen parcial pesa 30% y el final 35%. El reglamento no indica pesos distintos para las prácticas, por eso se asume que pesan igual. El parcial, el final y el promedio final se redondean al entero (el .5 sube).",root:{ch:[
+ {id:"tr",n:"Trabajos",w:35,ch:[
+  {id:"pc",n:"Prácticas Calificadas",w:100,ch:[{id:"pc1",n:"PC1",w:T},{id:"pc2",n:"PC2",w:T},{id:"pc3",n:"PC3",w:T}]}]},
+ {id:"pa",n:"Examen Parcial",w:30,r:1},{id:"fi",n:"Examen Final",w:35,r:1}]}},
+eco1:{n:"Economía General I",pre:"",rf:1,i:"Trabajos pesa 40% y está formado por 4 prácticas calificadas de 10% cada una. El examen parcial y el final pesan 30% cada uno. El reglamento no indica pesos distintos para las prácticas, por eso se asume que pesan igual. El parcial, el final y el promedio final se redondean al entero (el .5 sube).",root:{ch:[
+ {id:"tr",n:"Trabajos",w:40,ch:[
+  {id:"pc",n:"Prácticas Calificadas",w:100,ch:[{id:"pc1",n:"PC1",w:25},{id:"pc2",n:"PC2",w:25},{id:"pc3",n:"PC3",w:25},{id:"pc4",n:"PC4",w:25}]}]},
+ {id:"pa",n:"Examen Parcial",w:30,r:1},{id:"fi",n:"Examen Final",w:30,r:1}]}},
+der1:{n:"Introducción al Derecho",pre:"",rf:1,i:"No hay examen parcial ni final: el curso se compone de Controles de Lectura (30%), Prácticas Calificadas (40%) y Evaluación Continua (30%). Los 3 controles valen lo mismo (10% del curso cada uno), las 4 prácticas calificadas también (10% cada una) y las 3 actividades calificadas de la Evaluación Continua también (10% cada una). El promedio final se redondea al entero (el .5 sube).",root:{ch:[
+ {id:"cl",n:"Controles de Lectura",w:30,ch:[{id:"c1",n:"Control 1",s:"C1",w:T},{id:"c2",n:"Control 2",s:"C2",w:T},{id:"c3",n:"Control 3",s:"C3",w:T}]},
+ {id:"pc",n:"Prácticas Calificadas",w:40,ch:[{id:"pc1",n:"PC1",w:25},{id:"pc2",n:"PC2",w:25},{id:"pc3",n:"PC3",w:25},{id:"pc4",n:"PC4",w:25}]},
+ {id:"ec",n:"Evaluación Continua",w:30,ch:[{id:"a1",n:"Actividad 1",s:"A1",w:T},{id:"a2",n:"Actividad 2",s:"A2",w:T},{id:"a3",n:"Actividad 3",s:"A3",w:T}]}]}}
 };
-const KS=Object.keys(C),ST={};let cur,S,idx,view="welcome",sumIn=false,faqIn=false;
+const KS=["mat","len","inf","con","fce","int","mat1","len1","eco1","der1"],ST={};let cur,S,idx,view="welcome",sumIn=false,faqIn=false;
+const GR=[["Nivelación",0],["Cursos",1]],gof=x=>C[x].pre===""?1:0,inG=g=>KS.filter(x=>gof(x)===g);
 const walk=(n,f,d=0)=>(n.ch||[]).forEach(c=>{f(c,d);walk(c,f,d+1)});
 const leaves=(n,a=[])=>((n.ch||[]).forEach(c=>c.ch?leaves(c,a):a.push(c)),a);
 const isP=id=>{const g=S.g[id];return g===undefined||g===""||isNaN(+g)};
 const pend=()=>leaves(S.root).filter(l=>isP(l.id));
-const full=o=>{const v={};leaves(S.root).forEach(l=>v[l.id]=isP(l.id)?(o[l.id]??0):Math.min(20,Math.max(0,+S.g[l.id])));return v};
+const full=o=>{const v={};leaves(S.root).forEach(l=>{const m=l.mx||20;v[l.id]=isP(l.id)?(o[l.id]??0):Math.min(m,Math.max(0,+S.g[l.id]))*20/m});return v};
 const ev=(n,v)=>{const x=n.ch?n.ch.reduce((s,c)=>s+ev(c,v)*(+c.w||0)/100,0):v[n.id];return n.r?rnd(x):x};
 const pass=a=>(S.rf?rnd(a):a)>=S.pm-1e-9;
-const inp=c=>`<input class="g" data-id="${c.id}" type="number" inputmode="decimal" min="0" max="20" step="any" placeholder="Por rendir" aria-label="Nota de ${c.n}" value="${S.g[c.id]??""}">`;
-const row=(c,d)=>`<div class="row${c.ch?" grp":""}${c.b?" bd":""}" style="--d:${d}"><span class="nm">${c.n}<em>${fmt(c.w)}%</em></span>${c.ch?`<span class="sv" id="sv-${c.id}">—</span>`:inp(c)}</div>`;
-const soon=`<button disabled><small>Nivelación en</small>Intro. a la Ingeniería <em class="soon">Pronto</em></button>`;
+const inp=c=>{const v=S.g[c.id],f=v!==undefined&&v!=="",bd=f&&(+v>(c.mx||20)||+v<0);return `<label class="gi${f?" fl":""}${bd?" bad":""}"><input class="g" data-id="${c.id}" type="number" inputmode="decimal" min="0" max="${c.mx||20}" step="any" placeholder="Por rendir" aria-label="Nota de ${c.n}" value="${v??""}"${f?` style="width:${String(v).length+.6}ch"`:""}><span class="sf">/${c.mx||20}</span></label>`};
+/* Modelo A: cada evaluación muestra su % sobre el total del curso (c.a se calcula en mkState). d:"" oculta el % (partes medidas en puntos). */
+const dv=c=>c.d===""?"":fmt(c.a)+"%";
+const absW=(n,p)=>(n.ch||[]).forEach(c=>{c.a=p*(+c.w||0)/100;absW(c,c.a)});
+const mkState=k=>{const root=clone(C[k].root);absW(root,100);return{root,g:{},rf:!!C[k].rf,pm:11}};
+const row=(c,d)=>`<div class="row${c.ch?" grp":""}${c.b?" bd":""}" style="--d:${d}"><span class="nm">${c.n}${dv(c)?`<em>${dv(c)}</em>`:""}</span>${c.ch?`<span class="sv" id="sv-${c.id}">—</span>`:inp(c)}</div>`;
 
-const sl=g=>{const o=[];const rec=(n,sh,k)=>{if(!n.ch){o.push({id:n.id,n:n.n,s:n.s||n.n,w:sh,k});return}const t=n.ch.reduce((a,x)=>a+(+x.w||0),0)||100;n.ch.forEach(x=>rec(x,sh*(+x.w||0)/t,k))};
+const sl=(g,flat)=>{const o=[];const rec=(n,sh,k)=>{if(!n.ch||(n.z&&!flat)){o.push({id:n.id,n:n.n,s:n.s||n.n,w:sh,k,L:n.ch?leaves(n):null});return}const t=n.ch.reduce((a,x)=>a+(+x.w||0),0)||100;n.ch.forEach(x=>rec(x,sh*(+x.w||0)/t,k))};
  const t0=g.ch.reduce((a,x)=>a+(+x.w||0),0)||100;g.ch.forEach((c,k)=>rec(c,(+c.w||0)/t0*100,k));return o};
 function paintBars(){
  S.root.ch.forEach((g,i)=>{const e=document.querySelector(`#wbar span[data-i="${i}"]`);if(!e)return;
-  let f;if(g.ch){const L=sl(g),t=L.reduce((a,x)=>a+x.w,0)||1;f=L.filter(x=>!isP(x.id)).reduce((a,x)=>a+x.w,0)/t*100}else f=isP(g.id)?0:100;
-  e.style.setProperty("--f",f+"%")});
- document.querySelectorAll("#zb .zs").forEach(e=>e.classList.toggle("pd",isP(e.dataset.id)))}
-const chk=()=>$("mini").classList.toggle("on",view==="tool"&&!sumIn&&!faqIn);
-function showView(v){view=v;["welcome","pick","tool"].forEach(x=>$("v-"+x).hidden=x!==v);window.scrollTo({top:0,behavior:"instant"});chk()}
+  let f;if(g.ch){const L=sl(g,true),t=L.reduce((a,x)=>a+x.w,0)||1;f=L.filter(x=>!isP(x.id)).reduce((a,x)=>a+x.w,0)/t*100}else f=isP(g.id)?0:100;
+  e.style.setProperty("--f",f+"%");const b=document.querySelector(`.blk[data-b="${i}"]`);if(b){b.style.setProperty("--f",f+"%");const c=b.querySelector(".cnt");if(c){const L=leaves(g),n=L.filter(l=>!isP(l.id)).length;c.textContent=n+" de "+L.length;c.classList.toggle("full",n===L.length)}}});
+ document.querySelectorAll("input.g").forEach(i=>{const r=i.closest(".row,.bh");if(r)r.classList.toggle("dn",!isP(i.dataset.id))});
+ document.querySelectorAll("#zb .zs").forEach(e=>{const was=e.classList.contains("pd"),now=e.dataset.ids.split(",").some(isP);e.classList.toggle("pd",now);if(was&&!now){e.classList.remove("pop");void e.offsetWidth;e.classList.add("pop")}})}
+let faqNear=false;
+const chk=()=>{$("mini").classList.toggle("on",view==="tool"&&!sumIn&&!faqIn);$("tgw").classList.toggle("off",(view!=="tool"&&view!=="fi")||faqNear)};
+function showView(v){if(v==="fi"&&!FI_ACTIVO)v="welcome";view=v;track("pantalla",{vista:v});["welcome","pick","tool","fi"].forEach(x=>$("v-"+x).hidden=x!==v);window.scrollTo({top:0,behavior:"instant"});chk();fchk();trackCombo()}
 function closeList(){$("clist").hidden=true;$("cbtn").setAttribute("aria-expanded","false")}
 
 function setCourse(k){
- cur=k;S=ST[k]||(ST[k]={root:clone(C[k].root),g:{},rf:false,pm:11});
+ cur=k;S=ST[k]||(ST[k]=mkState(k));
  idx={};walk(S.root,c=>idx[c.id]=c);
  $("cval").textContent=(C[k].pre??"Nivelación en ")+C[k].n;
  $("cbtn").style.setProperty("--s",SC[KS.indexOf(k)%4]);
- $("clist").innerHTML=KS.map(x=>`<button role="option" data-c="${x}" class="${x===k?"on":""}"><small>${C[x].pre===""?"Curso":"Nivelación en"}</small>${C[x].n}</button>`).join("")+soon;
+ $("clist").innerHTML=GR.map(([t,g])=>`<div class="gh">${t}</div>`+inG(g).map(x=>`<button type="button" data-c="${x}" class="${x===k?"on":""}"><small>${C[x].pre===""?"Curso":"Nivelación en"}</small>${C[x].n}</button>`).join("")).join("")+(FI_ACTIVO?`<div class="gh">Factor de inscripción</div><button type="button" data-fi="1"><small>Herramienta</small>Calcular mi FI</button>`:"");
  closeList();
  $("ctitle").textContent=(C[k].pre??"Nivelación en ")+C[k].n;
- $("fl").innerHTML=`<b>Cursos</b>`+KS.map(x=>`<button data-c="${x}" data-f="1">${C[x].pre??"Nivelación en "}${C[x].n}</button>`).join("");
+ {const t=$("ctitle");t.classList.remove("mr");void t.offsetWidth;t.classList.add("mr")}
+ $("fl").innerHTML=GR.map(([t,g],j)=>`<b${j?' class="sp2"':""}>${t}</b>`+inG(g).map(x=>`<button type="button" data-c="${x}" data-f="1">${C[x].pre??"Nivelación en "}${C[x].n}</button>`).join("")).join("")+(FI_ACTIVO?`<b class="sp2">Factor de inscripción</b><button type="button" data-fi="1">Calcular mi FI</button>`:"");
  const G=S.root.ch;
  $("wbar").innerHTML=G.map((g,i)=>`<span data-i="${i}" style="flex:${g.w};--wb:${WB[i][0]};--wc:${WB[i][1]}">${fmt(g.w)}%</span>`).join("");
  $("lgd").innerHTML=G.map((g,i)=>`<span style="--wb:${WB[i][0]}">${g.n}</span>`).join("");
@@ -396,98 +925,344 @@ function setCourse(k){
  if(zi>=0){const g=G[zi],L=sl(g),SH=[100,78,56];
   const lg="";
   $("zm").style.cssText=`--wb:${WB[zi][0]};--wc:${WB[zi][1]}`;
-  $("zm").innerHTML=`<div class="zl">Dentro de ${g.n}</div><div class="zb" id="zb">${L.map(x=>`<span class="zs" data-id="${x.id}" title="${x.n}" style="flex:${x.w};--sh:${SH[x.k%3]}%">${x.s}</span>`).join("")}</div>${lg}`}
+  $("zm").innerHTML=`<div class="zb" id="zb">${L.map(x=>`<span class="zs" data-id="${x.id}" data-ids="${x.L?x.L.map(l=>l.id).join(","):x.id}" title="${x.n}" style="flex:${x.w};--sh:${SH[x.k%3]}%">${x.s}</span>`).join("")}</div>${lg}`}
  else $("zm").innerHTML="";
  let h="";
- G.forEach((g,i)=>{h+=`<div class="blk rv" style="--i:${i+4}"><div class="bh"><div class="bn"><span class="pct">${fmt(g.w)}%</span><b>${g.n}</b></div>${g.ch?`<span class="sv" id="sv-${g.id}">—</span>`:inp(g)}</div>`;
+ G.forEach((g,i)=>{h+=`<div class="blk rv" data-b="${i}" style="--i:${i+4}"><div class="bh${g.ch?"":" lf"}"><div class="bn"><span class="pct">${fmt(g.w)}%</span><b>${g.n}</b></div>${g.ch?`<span class="sv" id="sv-${g.id}">—</span>`:inp(g)}</div>`;
   if(g.ch){h+=`<div class="bb">`;walk(g,(c,d)=>{h+=row(c,d)});h+=`</div>`}
   h+=`</div>`});
  $("tree").innerHTML=h;
+ $("tree").classList.toggle("hdots",G.slice(1).every(g=>!g.ch));
  $("cinfo").textContent=C[k].i;
  let r="";walk(S.root,c=>r+=`<label class="ck"><input type="checkbox" data-r="${c.id}"${c.r?" checked":""}> Redondear ${c.n} a entero</label>`);
- $("rules").innerHTML=r+`<label class="ck"><input type="checkbox" id="rf"${S.rf?" checked":""}> Redondear el promedio final a entero (10.5 cuenta como 11)</label><button class="btn" id="rs">Restablecer este curso</button>`;
+ $("rules").innerHTML=r+`<label class="ck"><input type="checkbox" id="rf"${S.rf?" checked":""}> Redondear el promedio final a entero (10.5 cuenta como 11)</label><button type="button" class="btn" id="rs">Restablecer este curso</button>`;
  $("pm").value=S.pm;
+ prevOk=null;prevA=null;
  update();
 }
 
+const RM=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+function setNum(el,txt){
+ const to=parseFloat(txt),dec=(String(txt).split(".")[1]||"").length;
+ if(RM||isNaN(to)||el._to===to){el.textContent=txt;el._to=to;el._v=to;return}
+ const from=el._v??0;el._to=to;cancelAnimationFrame(el._r);const t0=performance.now(),D=500;
+ const step=t=>{const k=Math.min(1,(t-t0)/D),e=1-Math.pow(1-k,3);el._v=from+(to-from)*e;el.textContent=k<1?el._v.toFixed(dec):txt;if(k<1)el._r=requestAnimationFrame(step)};
+ el._r=requestAnimationFrame(step)}
+let prevOk=null,prevA=null;
+function burst(){
+ if(RM)return;const r=document.createElement("div");r.className="cf";r.setAttribute("aria-hidden","true");
+ const cols=["#00F03C","#0A5CFF","#F000F0","#ffffff"];
+ for(let i=0;i<26;i++){const p=document.createElement("i"),an=Math.random()*Math.PI*2,dist=50+Math.random()*90;
+  p.style.cssText=`--x:${Math.cos(an)*dist}px;--y:${Math.sin(an)*dist-40}px;--r:${Math.round(Math.random()*540-270)}deg;--c:${cols[i%4]};--s:${6+Math.round(Math.random()*6)}px;--d:${Math.round(Math.random()*90)}ms`;r.appendChild(p)}
+ $("sum").appendChild(r);setTimeout(()=>r.remove(),1500)}
 function update(){
  const R=S.root,P=pend(),n=P.length,a=ev(R,full({})),okk=pass(a),num=S.rf?rnd(a):fmt(a),col=okk?"gn":"rd";
+ if(prevOk===false&&okk&&a!==prevA)burst();prevOk=okk;prevA=a;
  walk(R,c=>{if(!c.ch)return;const hp=leaves(c).some(l=>isP(l.id)),e=$("sv-"+c.id);e.textContent=hp?"Faltan notas":fmt(ev(c,full({})));e.classList.toggle("pn",hp)});
  $("sl1").textContent=n?"Mi promedio hasta ahora":"Mi promedio final";
  $("sl2").innerHTML=`<span class="tag ${okk?"y":"n"}">${okk?"Aprobado":"Desaprobado"}</span>`;
- $("big").textContent=num;$("big").className=col;
- $("mbig").textContent=num;$("mbig").className=col;
+ setNum($("big"),num);$("big").className=col;
+ setNum($("mbig"),num);$("mbig").className=col;
  const w=Math.min(100,a/20*100)+"%",m=Math.min(100,S.pm/20*100)+"%",bg=okk?"#00F03C":"#ff5a5f";
  $("pf").style.width=w;$("pf").style.background=bg;$("mk").style.left=m;$("mk").setAttribute("aria-valuenow",S.pm);$("mkt").textContent=fmt(S.pm);
  $("mpf").style.width=w;$("mpf").style.background=bg;$("mmk").style.left=m;
  $("pt").textContent=`${fmt(a)} de ${S.pm} para aprobar`;
  let cb="";
  if(n){
+  const fp=(x,l)=>String(Math.round(x*(l.mx||20)/20*100)/100);
   const hdr=`<tr>${P.map(l=>`<th>${l.n}</th>`).join("")}<th class="pfc">Promedio final</th></tr>`;
-  const mk=o=>{const v=ev(R,full(o));return `<tr>${P.map(l=>`<td>${fg(o[l.id])}</td>`).join("")}<td class="pfc">${S.rf?rnd(v):fmt(v)}</td></tr>`};
-  const need=(pv,s)=>{for(let i=0;i<=40;i++){const o={};P.forEach(l=>o[l.id]=l.id===pv?s:i/2);if(pass(ev(R,full(o))))return o}return null};
-  const cand=n===1?Array.from({length:21},(_,i)=>i):Array.from({length:11},(_,i)=>20-2*i);
-  const rows=[];
-  for(const s of cand){const o=need(P[0].id,s);if(o)rows.push(mk(o));if(rows.length===5)break}
+  const mk=o=>{const v=ev(R,full(o)),pv=S.rf?rnd(v):fmt(v);return `<tr>${P.map(l=>`<td>${fp(o[l.id],l)}</td>`).join("")}<td class="pfc">${pv}</td></tr>`};
+  /* Combinaciones: las evaluaciones van en orden de rendición (las primeras son las más fáciles).
+     Cada fila es una escalera que baja: primeras notas más altas, últimas más bajas, y todas llegan a la nota mínima.
+     D = diferencia entre la primera y la última nota pendiente (0 = todas parecidas). Para cada D se busca la nota "base" más baja que aprueba. */
+  const sn=(x,l)=>{const m=l.mx;if(!m)return Math.round(x);return Math.min(m,Math.round(x*m/20*2)/2)*20/m};
+  const okc=o=>pass(ev(R,full(o)));
+  const rows=[],seen=new Set();
+  if(n===1){const l=P[0];for(let i=0;i<=20&&rows.length<5;i++){const o={[l.id]:sn(i,l)};if(okc(o)){const k=String(o[l.id]);if(!seen.has(k)){seen.add(k);rows.push(mk(o))}}}}
+  else for(const D of [0,3,6,9,12]){
+   for(let x=-D/2;x<=20+D/2+1e-9;x+=.5){
+    const o={};P.forEach((l,i)=>o[l.id]=sn(Math.max(0,Math.min(20,x+D*(.5-i/(n-1)))),l));
+    if(okc(o)){const k=P.map(l=>o[l.id]).join(",");if(!seen.has(k)){seen.add(k);rows.push(mk(o))}break}}}
   cb=okk?`<p class="msg">Ya aprobaste: aunque saques 0 en lo que falta, llegas a ${S.pm}.</p>`:!rows.length?`<p class="msg bad">Ni con 20 en todo lo que falta llegarías a ${S.pm}.</p>`:`<h2>Combinaciones posibles para aprobar</h2><div class="sc"><table>${hdr}${rows.join("")}</table></div>`;
  }
  $("cb").innerHTML=cb;
+ trackCombo();
  paintBars();
+ save();
 }
 
 const h=e=>{const t=e.target,id=t.dataset.id;
- if(t.classList.contains("g"))S.g[id]=t.value;
+ if(t.classList.contains("g")){S.g[id]=t.value;const gi=t.closest(".gi");if(gi){const f=t.value!=="";gi.classList.toggle("fl",f);gi.classList.toggle("bad",f&&(+t.value>(idx[id].mx||20)||+t.value<0));t.style.width=f?(t.value.length+.6)+"ch":""}}
  else if(t.dataset.r)idx[t.dataset.r].r=t.checked?1:0;
  else if(t.id==="rf")S.rf=t.checked;
- else if(t.id==="pm")S.pm=+t.value||0;
+ else if(t.id==="pm")S.pm=Math.max(0,Math.min(20,+t.value||0));
  else return;
  update()};
 document.addEventListener("input",h);document.addEventListener("change",h);
+/* Analíticas de uso de la calculadora: solo conteos y si aprueba o no, nunca las notas */
+function trackCalc(){clearTimeout(calcTm);calcTm=setTimeout(()=>{if(!S)return;const L=leaves(S.root),n=pend().length;
+ track("calculo_actualizado",{curso:cur,total:L.length,ingresadas:L.length-n,pendientes:n,completo:n===0,aprobado:pass(ev(S.root,full({}))),nota_minima:S.pm,redondeo_final:!!S.rf})},1800)}
+document.addEventListener("change",e=>{const t=e.target;if(!t||!t.classList)return;
+ if(t.classList.contains("g")&&t.value!==""){const L=leaves(S.root),n=L.filter(l=>!isP(l.id)).length;
+  track("nota_ingresada",{curso:cur,evaluacion:t.dataset.id,ingresadas:n,total:L.length});
+  if(!seenFirst.has(cur)){seenFirst.add(cur);track("primera_nota",{curso:cur,nombre:C[cur].n})}trackCalc()}
+ else if(t.dataset&&t.dataset.r)track("redondeo_cambiado",{curso:cur,evaluacion:t.dataset.r,activo:t.checked});
+ else if(t.id==="rf")track("redondeo_final_cambiado",{curso:cur,activo:t.checked});
+ else if(t.id==="pm"){track("nota_minima_cambiada",{curso:cur,valor:S.pm});trackCalc()}});
 document.addEventListener("click",e=>{
  if(!e.target.closest(".cs"))closeList();
+ const ig=e.target.closest("a[href*='instagram.com']");if(ig)track("instagram_click",{cuenta:ig.textContent.trim()});
+ if(e.target.closest("a[href='#faq']"))track("como_funciona_click");
  const b=e.target.closest("button");if(!b)return;
- if(b.id==="go")showView("pick");
- else if(b.id==="home"){closeList();showView("welcome")}
- else if(b.id==="cbtn"){const o=$("clist").hidden;$("clist").hidden=!o;b.setAttribute("aria-expanded",String(o))}
- else if(b.dataset.c){setCourse(b.dataset.c);if(b.dataset.p)showView("tool");else if(b.dataset.f)window.scrollTo({top:0})}
- else if(b.id==="rs"){ST[cur]=null;setCourse(cur)}});
+ if(b.hasAttribute("data-share"))doShare(b.classList.contains("shf")?"pie":"barra");
+ else if(b.id==="go"){track("empezar_click");showView("pick")}
+ else if(b.id==="home"){track("volver_inicio");closeList();showView("welcome")}
+ else if(b.id==="cbtn"){const o=$("clist").hidden;if(o)track("menu_cursos_abierto",{curso:cur});$("clist").hidden=!o;b.setAttribute("aria-expanded",String(o))}
+ else if(b.dataset.fi){closeList();showView("fi")}
+ else if(b.dataset.c){track("curso_elegido",{curso:b.dataset.c,nombre:C[b.dataset.c].n,grupo:gof(b.dataset.c)?"curso":"nivelacion",origen:b.dataset.p?"pantalla_elegir":b.dataset.f?"pie":"menu"});setCourse(b.dataset.c);if(b.dataset.p)showView("tool");else if(b.dataset.f)window.scrollTo({top:0})}
+ else if(b.id==="rs"){track("curso_restablecido",{curso:cur});ST[cur]=null;setCourse(cur)}});
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeList()});
 
-$("plist").innerHTML=KS.map((x,i)=>`<button class="rv" style="--i:${i+3};--s:${SC[i%4]}" data-c="${x}" data-p="1"><small>${C[x].pre===""?"Curso":"Nivelación en"}</small>${C[x].n}</button>`).join("")+`<button disabled class="rv" style="--i:${KS.length+3};--s:${SC[KS.length%4]}"><small>Nivelación en</small>Intro. a la Ingeniería <em class="soon">Pronto</em></button>`;
+$("plist").innerHTML=(FI_ACTIVO?`<section class="pg"><h2 class="gt">Factor de inscripción<i>1</i></h2><div class="pl"><button type="button" class="rv" style="--i:2;--s:#00F03C" data-fi="1"><small>Herramienta</small>Calcular mi FI</button></div></section>`:"")+GR.map(([t,g])=>`<section class="pg"><h2 class="gt">${t}<i>${inG(g).length}</i></h2><div class="pl">${inG(g).map(x=>{const i=KS.indexOf(x);return `<button type="button" class="rv" style="--i:${i+3};--s:${SC[i%4]}" data-c="${x}" data-p="1"><small>${C[x].pre===""?"Curso":"Nivelación en"}</small>${C[x].n}</button>`}).join("")}</div></section>`).join("");
 const pb=document.querySelector("#sum .pbar");let drag=false,raf=0;
-const setPm=v=>{v=Math.max(0,Math.min(20,Math.round(v)));if(v===S.pm)return;S.pm=v;$("pm").value=v;if(!raf)raf=requestAnimationFrame(()=>{raf=0;update()})};
+const setPm=v=>{v=Math.max(0,Math.min(20,Math.round(v)));if(v===S.pm)return;S.pm=v;trackCalc();$("pm").value=v;if(!raf)raf=requestAnimationFrame(()=>{raf=0;update()})};
 const fromX=x=>{const r=pb.getBoundingClientRect();return r.width?(x-r.left)/r.width*20:S.pm};
 pb.addEventListener("pointerdown",e=>{drag=true;try{pb.setPointerCapture(e.pointerId)}catch(_){}pb.classList.add("drag");setPm(fromX(e.clientX))});
 pb.addEventListener("pointermove",e=>{if(drag)setPm(fromX(e.clientX))});
 const endDrag=()=>{drag=false;pb.classList.remove("drag")};
 pb.addEventListener("pointerup",endDrag);pb.addEventListener("pointercancel",endDrag);
 $("mk").addEventListener("keydown",e=>{const d={ArrowLeft:-1,ArrowDown:-1,ArrowRight:1,ArrowUp:1}[e.key];if(d){e.preventDefault();setPm(d>0?Math.floor(S.pm)+1:Math.ceil(S.pm)-1)}else if(e.key==="Home"){e.preventDefault();setPm(0)}else if(e.key==="End"){e.preventDefault();setPm(20)}});
-const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.target.id==="sum")sumIn=e.isIntersecting;else faqIn=e.isIntersecting});chk()});
+const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.target.id==="sum")sumIn=e.isIntersecting;else faqIn=e.isIntersecting;if(e.isIntersecting&&view==="tool"){const k=e.target.id+":"+cur;if(!seenSec.has(k)){seenSec.add(k);track(e.target.id==="sum"?"resumen_visto":"faq_vista",{curso:cur})}}});chk()});
 io.observe($("sum"));io.observe($("faq"));
-const DECO=`<div class="deco" aria-hidden="true"><div class="gw"><div class="gr"></div></div><div class="rg"><i class="ring" style="--d:0s"></i><i class="ring" style="--d:2.3s;--rc:#0A5CFF"></i><i class="ring" style="--d:4.6s;--rc:#F000F0"></i><i class="dash"></i><i class="dash dash2"></i><i class="core">%</i></div><i class="dt d1" style="width:22px;height:22px;background:#00F03C;top:9%;right:11%;--x:-16px;--y:20px;--t:6s"></i><i class="dt d2" style="width:15px;height:15px;background:#0A5CFF;top:34%;right:5%;--x:10px;--y:-24px;--t:8s;--d:-2s"></i><i class="dt d3" style="width:26px;height:26px;background:#F000F0;bottom:14%;right:28%;--x:-12px;--y:-18px;--t:7s;--d:-1s"></i><b class="cp c1" style="top:9%;left:7%;--t:9s">11</b><b class="cp c2" style="top:17%;right:30%;--t:7s;--d:-3s">15</b><b class="cp c3" style="bottom:9%;left:9%;--t:8s;--d:-5s">20</b><i class="sq s1" style="bottom:18%;right:9%"></i></div>`;
+const PT=Array.from({length:16},(_,i)=>`<i class="pt" style="--x:${(i*6.2+3+(i%3)*2).toFixed(1)}%;--t:${9+(i*7)%6}s;--d:${-(i*1.3).toFixed(1)}s;--z:${2+i%3}px;--dx:${(i%2?1:-1)*(10+i*2)}px;--c:${["#fff","#00F03C","#0A5CFF","#F000F0"][i%4]}"></i>`).join("");
+const SPK=[[12,22],[84,16],[70,72],[16,78],[52,10],[93,50]].map(([x,y],i)=>`<i class="sp" style="--x:${x}%;--y:${y}%;--s:${12+(i%3)*5}px;--d:${(i*.7).toFixed(1)}s"></i>`).join("");
+const DECO=`<div class="deco" aria-hidden="true"><div class="gw"><div class="gr"></div></div><div class="rg"><i class="ring" style="--d:0s"></i><i class="ring" style="--d:2.3s;--rc:#0A5CFF"></i><i class="ring" style="--d:4.6s;--rc:#F000F0"></i><i class="dash"></i><i class="dash dash2"></i><i class="core">%</i></div><i class="dt d1" style="width:22px;height:22px;background:#00F03C;top:9%;right:11%;--x:-16px;--y:20px;--t:6s"></i><i class="dt d2" style="width:15px;height:15px;background:#0A5CFF;top:34%;right:5%;--x:10px;--y:-24px;--t:8s;--d:-2s"></i><i class="dt d3" style="width:26px;height:26px;background:#F000F0;bottom:14%;right:28%;--x:-12px;--y:-18px;--t:7s;--d:-1s"></i><b class="cp c1" style="top:9%;left:7%;--t:9s">11</b><b class="cp c2" style="top:17%;right:30%;--t:7s;--d:-3s">15</b><b class="cp c3" style="bottom:9%;left:9%;--t:8s;--d:-5s">20</b><i class="sq s1" style="bottom:18%;right:9%"></i><i class="beam"></i>${PT}${SPK}</div>`;
 document.querySelectorAll(".wel").forEach(el=>el.insertAdjacentHTML("afterbegin",DECO));
-setCourse("mat");
-showView("welcome");
-</script>
-<script>
-/* Modo mantenimiento: pon false para reabrir la página */
-(function(){
-var MANTENIMIENTO=true;
-var o=document.getElementById('mnt');
-if(!o)return;
-if(!MANTENIMIENTO){o.remove();return;}
-Array.prototype.forEach.call(document.body.children,function(el){
-if(el!==o&&el.tagName!=='SCRIPT'){el.setAttribute('inert','');el.setAttribute('aria-hidden','true');}
+document.querySelectorAll(".tip,#sum,.faq h2,.qa,footer .fc").forEach((e,i)=>{e.classList.add("sr");e.style.setProperty("--i",String(i%4))});
+const so=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add("in");so.unobserve(e.target)}}),{threshold:.1,rootMargin:"0px 0px -5% 0px"});
+document.querySelectorAll(".sr").forEach(e=>so.observe(e));
+const FBH={v:`<span class="fbv">My Ponder<b>UP</b></span>`,h:`<span class="fbh"><i class="mark">%</i><span>My Ponder<b>UP</b></span></span>`,f:`<span class="logo">My Ponder<b>UP</b></span>`};
+const fbImg=img=>{if(img.dataset.done||!img.isConnected)return;img.dataset.done="1";const t=document.createElement("template");t.innerHTML=FBH[img.dataset.fb];img.replaceWith(t.content.firstElementChild)};
+const chkImgs=()=>document.querySelectorAll("img[data-fb]").forEach(i=>{if(i.complete&&i.naturalWidth===0)fbImg(i)});
+document.querySelectorAll("img[data-fb]").forEach(i=>i.addEventListener("error",()=>fbImg(i)));chkImgs();window.addEventListener("load",chkImgs);
+/* Preguntas: abrir y cerrar con animación suave */
+document.querySelectorAll(".qa").forEach(d=>{
+ const sm=d.querySelector("summary"),an=d.querySelector(".ans"),inner=an.firstElementChild;let anim=null,anim2=null;
+ sm.addEventListener("click",e=>{
+  e.preventDefault();
+  const mid=!!anim,h0=mid?an.getBoundingClientRect().height:0,o0=mid?+getComputedStyle(an).opacity:0;
+  if(anim){anim.cancel();anim2&&anim2.cancel();anim=anim2=null}
+  const open=!d.open||d.classList.contains("closing");if(open)track("faq_abierta",{pregunta:((d.querySelector(".q")||{}).textContent||"").slice(0,80)});
+  if(RM){d.classList.remove("closing");d.open=open;return}
+  d.classList.remove("closing");d.open=true;
+  const full=an.offsetHeight;
+  an.style.overflow="hidden";
+  if(!open)d.classList.add("closing");
+  const a=open?[{height:(mid?h0:0)+"px",opacity:mid?o0:0},{height:full+"px",opacity:1}]:[{height:(mid?h0:full)+"px",opacity:mid?o0:1},{height:"0px",opacity:0}];
+  const o={duration:open?460:340,easing:open?"cubic-bezier(.2,.7,.2,1)":"cubic-bezier(.4,0,.2,1)"};
+  anim=an.animate(a,o);
+  if(inner)anim2=inner.animate(open?[{transform:"translateY(-10px)",opacity:0},{transform:"none",opacity:1}]:[{transform:"none",opacity:1},{transform:"translateY(-8px)",opacity:0}],o);
+  const me=anim;
+  me.onfinish=()=>{if(anim!==me)return;anim=anim2=null;an.style.overflow="";if(!open){d.open=false;d.classList.remove("closing")}};
+ });
 });
-document.documentElement.style.overflow='hidden';
-document.body.style.overflow='hidden';
-var n=document.getElementById('mnt-n');
-if(n&&!window.matchMedia('(prefers-reduced-motion:reduce)').matches){
-var t0=null,d=2400,delay=600;n.textContent='0%';
-(function f(ts){if(t0===null)t0=ts;var p=Math.min(Math.max((ts-t0-delay)/d,0),1);
-n.textContent=Math.round(97*(1-Math.pow(1-p,3)))+'%';if(p<1)requestAnimationFrame(f);})(performance.now());
-}
-})();
+/* Favicon: lo centra en un lienzo cuadrado sin estirarlo */
+{const im=new Image();im.crossOrigin="anonymous";
+ im.onload=()=>{try{const N=256,c=document.createElement("canvas");c.width=c.height=N;const x=c.getContext("2d"),k=Math.min(N/im.naturalWidth,N/im.naturalHeight),w=im.naturalWidth*k,hh=im.naturalHeight*k;x.imageSmoothingQuality="high";x.drawImage(im,(N-w)/2,(N-hh)/2,w,hh);const u=c.toDataURL("image/png");document.querySelectorAll('link[rel="icon"],link[rel="apple-touch-icon"]').forEach(l=>{l.type="image/png";l.href=u})}catch(_){}};
+ idle(()=>{im.src="https://i.postimg.cc/kgMrMKWb/Recurso-3.png"})}
+/* Modo claro / oscuro */
+{const root=document.documentElement,tg=$("tg"),mq=window.matchMedia?matchMedia("(prefers-color-scheme: dark)"):null;let saved=null;
+ try{saved=localStorage.getItem("mp-theme")}catch(_){}
+ const apply=d=>{root.dataset.theme=d?"dark":"light";tg.setAttribute("aria-checked",String(d))};
+ apply(saved?saved==="dark":!!(mq&&mq.matches));
+ tg.addEventListener("click",()=>{const d=root.dataset.theme!=="dark";apply(d);track("tema_cambiado",{tema:d?"oscuro":"claro"});saved=d?"dark":"light";try{localStorage.setItem("mp-theme",saved)}catch(_){}});
+ if(mq&&mq.addEventListener)mq.addEventListener("change",e=>{if(!saved)apply(e.matches)})}
+const fo=new IntersectionObserver(es=>es.forEach(e=>{if(e.target.id==="faq"){faqNear=e.isIntersecting;chk()}}),{rootMargin:"0px 0px 170px 0px"});fo.observe($("faq"));
+
+/* ===== Guardado automático (localStorage): notas, nota mínima y redondeos de cada curso ===== */
+const LSK="mp-progress";
+const defR=k=>{const d={};walk(C[k].root,c=>d[c.id]=c.r?1:0);return d};
+function save(){try{const o={};
+ for(const k in ST){const t=ST[k];if(!t)continue;const e={},g={};
+  for(const id in t.g){const v=t.g[id];if(v!==undefined&&v!=="")g[id]=v}
+  if(Object.keys(g).length)e.g=g;
+  if(t.pm!==11)e.pm=t.pm;
+  if(t.rf!==!!C[k].rf)e.rf=t.rf;
+  const d=defR(k),r={};walk(t.root,c=>{if((c.r?1:0)!==d[c.id])r[c.id]=c.r?1:0});
+  if(Object.keys(r).length)e.r=r;
+  if(Object.keys(e).length)o[k]=e}
+ localStorage.setItem(LSK,JSON.stringify({v:1,cur,c:o}))}catch(_){}}
+function load(){try{const j=JSON.parse(localStorage.getItem(LSK)||"null");if(!j||j.v!==1||!j.c)return null;
+ for(const k in j.c){if(!C[k])continue;const e=j.c[k]||{},t=ST[k]=mkState(k),lv={},nd={};
+  walk(t.root,c=>{nd[c.id]=c;if(!c.ch)lv[c.id]=1});
+  if(e.g)for(const id in e.g){const v=String(e.g[id]);if(lv[id]&&v!==""&&isFinite(+v))t.g[id]=v}
+  if(typeof e.pm==="number"&&e.pm>=0&&e.pm<=20)t.pm=e.pm;
+  if(typeof e.rf==="boolean")t.rf=e.rf;
+  if(e.r)for(const id in e.r)if(nd[id])nd[id].r=e.r[id]?1:0}
+ const wg=k=>ST[k]&&Object.keys(ST[k].g).length>0;
+ return (C[j.cur]&&wg(j.cur))?j.cur:(KS.find(wg)||null)}catch(_){return null}}
+
+/* ===== Compartir ===== */
+function toast(m){const t=$("toast");t.textContent=m;t.classList.add("on");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("on"),2600)}
+async function doShare(o){track("compartir_click",{origen:o});
+ const url=location.href.split("#")[0],d={title:"My PonderUP",text:"Calcula tu ponderado y mira qué notas necesitas para aprobar.",url};
+ if(navigator.share&&window.matchMedia&&matchMedia("(pointer:coarse)").matches){try{await navigator.share(d);track("compartir_ok",{origen:o,metodo:"nativo"});return}catch(e){if(e&&e.name==="AbortError")return}}
+ try{await navigator.clipboard.writeText(url);toast("Enlace copiado");track("compartir_ok",{origen:o,metodo:"copiar"})}
+ catch(_){const ta=document.createElement("textarea");ta.value=url;ta.style.cssText="position:fixed;opacity:0";document.body.appendChild(ta);ta.select();let ok=false;try{ok=document.execCommand("copy")}catch(_){}ta.remove();toast(ok?"Enlace copiado":url)}}
+
+/* ===== Comentarios o sugerencias (API propia /api/sugerencia) =====
+   El navegador solo ayuda al usuario (trampa oculta _gotcha, tiempo minimo escribiendo, sin enlaces, sin repetidos, 1 por minuto y
+   3 al dia). Esas reglas se pueden saltar, asi que la proteccion real esta en el servidor (api/sugerencia.js): origen, captcha,
+   limite por IP, tope global, etc. TS_SITEKEY: clave publica de Cloudflare Turnstile ("" = sin captcha). */
+{const f=$("sgf"),m=$("sgm"),b=$("sgb"),st=$("sgs"),LK="mp-sg",MIN_MS=2500,COOL=60e3,MAXDAY=3,TS_SITEKEY="";let busy=false,t0=0,tsId=null,tsTok="",tsOn=false;
+ const ERR={espera:"Espera un minuto antes de enviar otro mensaje.",limite_dia:"Ya enviaste varios mensajes hoy. ¡Gracias! Puedes escribir de nuevo mañana.",
+  enlace:"Por seguridad no se permiten enlaces en los mensajes.",captcha:"No pudimos verificar que eres una persona. Recarga la página e inténtalo otra vez.",
+  cupo:"Hoy ya recibimos muchos mensajes. Inténtalo mañana, ¡gracias!",invalido:"Revisa tu mensaje: debe tener entre 5 y 1000 caracteres."};
+ const grow=()=>{m.style.height="auto";m.style.height=Math.min(m.scrollHeight+2,130)+"px"};
+ const say=(t,k)=>{st.textContent=t;st.className="sgs"+(k?" "+k:"")};
+ const norm=x=>x.toLowerCase().replace(/\s+/g," ").slice(0,200);
+ const hist=()=>{try{const a=JSON.parse(localStorage.getItem(LK)||"[]");return Array.isArray(a)?a.filter(x=>x&&typeof x.t==="number"&&Date.now()-x.t<864e5):[]}catch(_){return[]}};
+ const addH=x=>{try{const a=hist();a.push({t:Date.now(),h:norm(x)});localStorage.setItem(LK,JSON.stringify(a))}catch(_){}};
+ const block=(why,msg)=>{say(msg,"bad");track("sugerencia_bloqueada",{motivo:why,curso:cur})};
+ /* Turnstile se carga solo cuando la persona toca el cuadro de texto: no afecta la velocidad de la pagina */
+ const tsLoad=()=>{if(!TS_SITEKEY||tsOn)return;tsOn=true;
+  const s=document.createElement("script");s.src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";s.async=true;
+  s.onload=()=>{try{tsId=turnstile.render("#sgt",{sitekey:TS_SITEKEY,appearance:"interaction-only",callback:t=>{tsTok=t},"expired-callback":()=>{tsTok=""},"error-callback":()=>{tsTok=""}})}catch(_){tsOn=false}};
+  s.onerror=()=>{tsOn=false};document.head.appendChild(s)};
+ const tsReset=()=>{tsTok="";try{if(tsId!==null)turnstile.reset(tsId)}catch(_){}};
+ m.addEventListener("focus",tsLoad);
+ m.addEventListener("input",()=>{if(!t0)t0=Date.now();grow();if(st.textContent)say("")});
+ f.addEventListener("submit",async e=>{e.preventDefault();if(busy)return;
+  const t=m.value.trim();
+  if(!t){say("Escribe algo antes de enviar.","bad");m.focus();return}
+  if(f.elements._gotcha&&f.elements._gotcha.value){track("sugerencia_bloqueada",{motivo:"trampa"});m.value="";say("¡Gracias! Recibimos tu mensaje.","ok");return}
+  if(t.length<5)return block("corto","Escribe un poco más para poder entenderte.");
+  if(/(https?:\/\/|www\.)/i.test(t))return block("enlace",ERR.enlace);
+  if(!t0||Date.now()-t0<MIN_MS)return block("rapido","Un momento, revisa tu mensaje e inténtalo otra vez.");
+  const H=hist(),last=H[H.length-1];
+  if(last&&Date.now()-last.t<COOL)return block("espera",ERR.espera);
+  if(H.length>=MAXDAY)return block("limite_dia",ERR.limite_dia);
+  if(H.some(x=>x.h===norm(t)))return block("repetido","Ya recibimos ese mensaje. ¡Gracias!");
+  if(TS_SITEKEY&&!tsTok){tsLoad();return block("captcha_espera","Estamos verificando que eres una persona. Espera un momento e inténtalo otra vez.")}
+  busy=true;b.disabled=true;b.textContent="Enviando…";say("");
+  try{const body={message:t,curso:cur?C[cur].n:"",_gotcha:f.elements._gotcha?f.elements._gotcha.value:"",token:tsTok,seg:Math.round((Date.now()-t0)/1000)};
+   const r=await fetch(f.action,{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify(body),signal:window.AbortSignal&&AbortSignal.timeout?AbortSignal.timeout(15000):undefined});
+   let j=null;try{j=await r.json()}catch(_){}
+   if(r.ok&&j&&j.ok){addH(t);t0=0;m.value="";m.style.height="";say("¡Gracias! Recibimos tu mensaje.","ok");track("sugerencia_enviada",{curso:cur,largo:t.length})}
+   else{const code=j&&j.error;say(ERR[code]||(r.status===429?"Hay muchos envíos en este momento. Inténtalo en unos minutos.":"No se pudo enviar. Inténtalo otra vez."),"bad");track("sugerencia_error",{estado:r.status,motivo:code||""})}
+   tsReset()}
+  catch(_){say("No se pudo enviar. Revisa tu conexión e inténtalo otra vez.","bad");track("sugerencia_error",{estado:"red"});tsReset()}
+  busy=false;b.disabled=false;b.textContent="Enviar"})}
+
+/* ===== Factor de inscripción ===== */
+const PLN={"adm":{"n":"Administración","c":[["I","Fundamentos de las Ciencias Empresariales|4|141038|4|0;Lenguaje I|4|120001|4|0;Matemáticas I|5|138649|4|2;Economía General I|5|132641|4|2"],["II","Lenguaje II|4|120006|4|0;Fundamentos de Contabilidad|4|160092|3|2;Economía General II|5|130642|4|2;Matemáticas para los Negocios|4|130230|3|2"],["III","Contabilidad Financiera Intermedia|5|160171|4|2;Derecho Civil y Comercial|3|180266|2|2;Estadística I|4|130224|4|1"],["IV","Diseño Organizacional y Estrategia|4|142081|4|0;Analítica de Datos para los Negocios|3|142277|0|6;Marketing Estratégico|4|1MN035|4|0;Fundamentos de Finanzas|4|1F0112|3|2;Derecho Laboral y Tributario|3|180268|2|2"],["V","Métodos Cuantitativos para la Gestión en las Organizaciones|4|142096|3|2;Investigación de Mercados|4|1MN020|4|0;Contabilidad para la Toma de Decisiones|5|160025|4|2;Gestión del Cambio y Transformación Cultural|4|142094|4|0;Análisis Multivariado para los Negocios|4|141036|4|1"],["VI","Innovación y Gestión en Negocios Digitales|3|142091|2|2;Finanzas Corporativas I|5|1F0120|4|2;Gestión de Personas|4|144741|4|0;Investigación Académica|3|150140|2|2;Gestión de Operaciones en las Organizaciones|4|142084|3|2"],["VII","Sistemas de Información y Análisis de Datos|3|142273|2|2;Evaluación Financiera de las Organizaciones|5|160172|4|2;Creación de Valor y Toma de Decisiones|3|142077|3|0;Gestión del Comercio Internacional|4|1MN015|4|0;Gestión de la Cadena de Suministros|4|141041|4|0"],["VIII","Business Agility|3|142280|2|2;Gestión de la Sostenibilidad Social y Ambiental en las Empresas|4|142085|4|0;Gestión Internacional de Empresas|4|1MN016|4|0"],["IX","Ética|4|120133|4|0;Dirección Estratégica|4|149078|4|0;Investigación Aplicada a los Negocios|3|141042|2|2"],["X","Proyección Social|4|150013|4|0;Proyecto Empresarial|5|142100|2|6"]]},"con":{"n":"Contabilidad","c":[["I","Fundamentos de las Ciencias Empresariales|4|141038|4|0;Lenguaje I|4|120001|4|0;Matemáticas I|5|138649|4|2;Economía General I|5|132641|4|2"],["II","Economía General II|5|130642|4|2;Lenguaje II|4|120006|4|0;Matemáticas para los Negocios|4|130230|3|2;Derecho Civil y Comercial|3|180266|2|2;Fundamentos de Contabilidad|4|160092|3|2"],["III","Estadística I|4|130224|4|1;Contabilidad Financiera Intermedia|5|160171|4|2;Derecho Laboral y Tributario|3|180268|2|2"],["IV","Contabilidad Financiera Aplicada|4|160169|3|2;Diseño Organizacional y Estrategia|4|142081|4|0;Fundamentos de Marketing|4|1MN018|4|0;Analítica de Datos para los Negocios|3|142277|0|6"],["V","Fundamentos de Finanzas|4|1F0112|3|2;Gestión del Cambio y Transformación Cultural|4|142094|4|0;Contabilidad de Costos|4|167060|3|2;Análisis Multivariado para los Negocios|4|141036|4|1;Métodos Cuantitativos para la Gestión en las Organizaciones|4|142096|3|2"],["VI","Finanzas Corporativas I|5|1F0120|4|2;Investigación Académica|3|150140|2|2;Normas Contables Internacionales|4|160099|3|2;Gestión de Operaciones en las Organizaciones|4|142084|3|2;Contabilidad de Gestión|4|160088|3|2"],["VII","SAP Hana para la Gestión de la Información|4|160197|3|2;Auditoría|4|163059|3|2;Sistemas de Información y Análisis de Datos|3|142273|2|2;Evaluación Financiera de las Organizaciones|5|160172|4|2;Contabilidad y Finanzas Avanzadas|4|160090|3|2"],["VIII","Tributación Aplicada I|4|160094|3|2;Control Interno y Gestión del Riesgo|4|160091|3|2;Gestión y Costos Estratégicos|4|160174|4|0;Dirección Estratégica|4|149078|4|0"],["IX","Tributación Aplicada II|4|160096|3|2;Proyección Social|4|150013|4|0;Gestión de la Información y Métricas de Sostenibilidad Empresarial|4|160173|4|0;Ética|4|120133|4|0"],["X","Investigación para Contadores|5|160175|2|6"]]},"der":{"n":"Derecho","c":[["I","Lenguaje I|4|120001|4|0;Matemáticas I|5|138649|4|2;Fundamentos de las Ciencias Empresariales|4|141038|4|0;Introducción al Derecho|5|180277|5|0"],["II","Lenguaje II|4|120006|4|0;Economía General I|5|132641|4|2;Fundamentos de Contabilidad|4|160092|3|2;Derecho Constitucional General|5|180086|5|0;Personas del Derecho Civil|4|180066|3|2"],["III","Economía General II|5|130642|4|2;Investigación Académica|3|150140|3|0;Acto Jurídico|4|185099|3|2;Derechos Reales|4|180017|4|0"],["IV","Ética|4|120133|4|0;Obligaciones|4|180278|4|0;Derecho Procesal Constitucional|4|180315|4|0;Teoría General del Proceso|4|180282|4|0"],["V","Contabilidad Financiera Intermedia|5|160171|4|2;Contratos|4|180265|4|0;Derecho Procesal Civil|5|180321|5|0"],["VI","Sistemas Financieros|4|1F0124|4|0;Derecho Penal|5|180327|5|0;Derecho Administrativo I|4|187019|4|0;Responsabilidad Extracontractual|3|180099|3|0;Contratos Especiales|3|180333|3|0"],["VII","Derecho Administrativo II|4|189097|4|0;Derecho Internacional Público|4|180070|4|0;Derecho Laboral I|4|180088|4|0;Instituciones de Derecho Mercantil|4|180276|4|0;Derecho Penal Económico|2|181008|2|0"],["VIII","Derecho Tributario I|4|180339|3|2;Sociedades|4|180350|3|2;Derecho Procesal Penal|4|180358|4|0;Análisis Económico del Derecho|3|182047|3|0;Derecho Internacional Privado|3|182128|3|0"],["IX","Derecho de Familia y Sucesiones|4|188027|4|0;Economía y Estadística Aplicada al Derecho|4|130466|4|0;Arbitraje|4|186045|4|0;Derecho Tributario II|4|181000|3|2;Derecho Laboral II|3|180089|3|0;Destrezas Legales I|3|188111|3|0"],["X","Libre Competencia|4|180332|4|0;Políticas Públicas|3|180253|3|0;Destrezas Legales II|3|188112|3|0;Derecho Ambiental|3|180093|3|0"],["XI","Innovación Legal y Tecnología|3|180274|3|0;Proyección Social|4|150013|4|0;Banca y Mercado de Valores|4|185036|4|0;Responsabilidad del Abogado|3|180279|3|0"],["XII","Instrumentos de Financiación y Garantías|4|180328|4|0;Derecho del Comercio Internacional|3|180094|3|0;Seminario de Tesis|3|180280|3|0"]]},"eco":{"n":"Economía","c":[["I","Economía General I|5|132641|4|2;Fundamentos de Contabilidad|4|160092|3|2;Lenguaje I|4|120001|4|0;Matemáticas I|5|138649|4|2"],["II","Economía General II|5|130642|4|2;Lenguaje II|4|120006|4|0;Matemáticas II|5|131650|4|2"],["III","Estadística I|4|130224|4|1;Investigación Académica|3|150140|2|2;Matemáticas III|5|130233|4|2;Microeconomía I|5|138201|4|2"],["IV","Estadística II|4|130225|4|1;Macroeconomía I|5|134203|4|2;Matemáticas IV|5|130229|4|2;Microeconomía II|5|134427|4|2"],["V","Estadística Aplicada|4|130223|3|2;Evaluación Privada de Proyectos|4|133016|3|2;Macroeconomía II|5|132204|4|2;Teoría del Comercio Internacional|4|130656|3|2"],["VI","Econometría I|5|130424|4|2;Economía Financiera I|4|1F0228|3|2;Macroeconomía III|5|130648|4|2;Gestión de los Recursos Naturales|4|135645|4|0"],["VII","Econometría II|5|138425|4|2;Economía y Derecho|4|186108|4|0;Historia del Pensamiento Económico|4|135015|4|0;Macroeconomía Internacional|4|130227|3|2"],["VIII","Política Económica|4|132655|4|0;Organización Industrial|4|130232|4|1"],["IX","Proyección Social|4|150013|4|0;Ética|4|120133|4|0;Investigación Económica I|2|131566|2|0"],["X","Investigación Económica II|2|130567|2|0"]],"x":[["Electivos","Análisis Económico de la Competencia|3|130454|3|0;Análisis Político Relevante para la Perspectiva Económica|2|130289|2|0;Economía Peruana|2|130462|2|0;Economic Growth and Development in L.A.|3|130112|3|0;Entorno Económico|2|130461|2|0;Fundamentos y Prácticas para una Gestión Pública Efectiva|3|130464|3|0;Herramientas para el Diagnóstico y Análisis de Políticas Sociales|3|130369|3|0;Herramientas para Evaluación de Rentabilidad y Desempeño|3|130457|3|0;Machine Learning para Economistas|3|130465|2|2;Political Economy Seminar|3|130115|3|0;Sem. Economía y Financiamiento en Salud|2|130422|2|0;Sem. de Economía y Gestión de Programas Sociales|2|130372|2|0"]]},"fin":{"n":"Finanzas","c":[["I","Economía General I|5|132641|4|2;Fundamentos de Contabilidad|4|160092|3|2;Lenguaje I|4|120001|4|0;Matemáticas I|5|138649|4|2"],["II","Economía General II|5|130642|4|2;Lenguaje II|4|120006|4|0;Matemáticas II|5|131650|4|2"],["III","Estadística I|4|130224|4|1;Investigación Académica|3|150140|2|2;Matemáticas III|5|130233|4|2;Microeconomía I|5|138201|4|2;Sistemas Financieros|4|1F0124|4|0"],["IV","Estadística II|4|130225|4|1;Fundamentos de Finanzas|4|1F0112|3|2;Macroeconomía Financiera|5|1F0114|4|2;Microeconomía Financiera|5|1F0069|4|2"],["V","Estadística Aplicada|4|130223|3|2;Finanzas Corporativas I|5|1F0120|4|2;Análisis Financiero|4|1F0162|3|2;Finanzas Sostenibles|4|1F0324|4|0"],["VI","Econometría I|5|130424|4|2;Instrumentos Derivados|4|1F0113|3|2;Renta Fija|4|1F0115|3|2;Renta Variable|4|1F0116|3|2"],["VII","Derecho de la Empresa|4|180122|4|0;Finanzas Cuantitativas|5|1F0111|4|2;Finanzas Corporativas II|4|1F0110|3|2"],["VIII","Análisis y Gestión de Riesgos|5|1F0107|4|2;Negociación Financiera|4|1F0230|4|0;Riesgo Crediticio|4|1F0117|4|0"],["IX","Certificaciones Internacionales|2|1F0108|2|0;Ética|4|120133|4|0;Proyección Social|4|150013|4|0"],["X","Investigación Financiera|2|1F0060|2|0"]],"x":[["Electivos","Finanzas y Abundancia|4|1F0275|4|0;Mercado de Capitales|4|1F0013|4|0;Sem. de Administración de Riesgo en Banca|2|1F0021|2|0;Sem. de Evaluación y Financiamiento de Proyectos|2|1F0023|2|0;Sem. de Financial Modeling|2|1F0280|2|0;Sem. de Finanzas para el Emprendimiento|2|1F0018|2|0;Sem. de Private Equity - Nexus Group|2|1F0128|2|0;Sem. de Private Equity - Enfoca|2|1F0166|2|0;Sem. de Project Finance|2|1F0241|2|0;Sem. de Valorización de Entidades Financieras|2|1F0320|2|0;Sem. de Value Investing|2|1F0281|2|0;Sem. M&A Case Studies|2|1F0227|2|0;Sem. Valorización de Empresas|2|1F0027|2|0"]]},"hd":{"n":"Humanidades Digitales","c":[["I","Lenguaje I|4|120001|4|0;Matemáticas I|5|138649|4|2;Economía General I|5|132641|4|2;Introducción a las Humanidades Digitales|4|120244|4|0;Lectura Crítica de la Prensa Digital y en las Redes Sociales|4|120252|4|0"],["II","Lenguaje II|4|120006|4|0;Economía General II|5|130642|4|2;Cultura, Visualidad y Política|4|120259|4|0"],["III","Investigación Académica|3|150140|2|2;Estadística I|4|130224|4|1;Comunicación Digital|4|120270|4|0;Marketing Estratégico|4|1MN035|4|0;Herramientas de Programación|4|170335|3|2"],["IV","Matemáticas Discretas para la Computación|4|170333|4|0;Análisis Cuantitativo en las Ciencias Humanas|4|150283|3|2;Arquitectura del Sistema de Información|4|170119|3|2;Curaduría Digital de Contenidos Culturales|4|120245|4|0;Taller de Humanidades Digitales 1|4|120265|2|4"],["V","Fundamentos de Analítica|4|170336|4|0;Fundamentos de Contabilidad|4|160092|3|2;Análisis de Datos Geográficos|4|170439|3|2;Design Thinking and Technological Innovation|4|170329|3|2"],["VI","Literatura y Videojuegos|4|120246|4|0;Introducción al Análisis de Texto|4|170467|3|2;Ciencia, Tecnología y Sociedad|4|120264|4|0;Procesamiento de Datos Multimedia|4|170433|3|2"],["VII","Análisis de Datos Multimedia|4|170476|3|2;Dinámicas Espaciales y Territoriales del Perú|4|150294|3|2"],["VIII","Ingeniería de Datos|4|170179|3|2;Machine Learning para Negocios y Humanidades|4|170499|3|2;Taller de Humanidades Digitales 2|4|150199|2|4"],["IX","Ética|4|120133|4|0;Proyección Social|4|150013|4|0;Taller de Humanidades Digitales 3|4|170491|2|4"],["X","Trabajo Final de Humanidades Digitales|4|120257|4|0;Gobierno Electrónico|4|170458|3|2;Ética en la Era Digital|4|120241|4|0"]],"x":[["Bloques de diseño y experiencia del usuario","Historia Crítica del Diseño|4|170441|3|2;Teoría de los Sentidos|4|170450|3|2;Semiótica y Teoría del Diseño|4|170462|3|2;Diseño Gráfico Digital|4|170432|3|2;Comportamiento del Consumidor|4|1MN017|4|0;Experiencia del Usuario|4|170446|2|2;Tecnología y Medios de Comunicación|4|170346|2|2;Urbanismo y Espacios Sociales|4|170466|3|2"]]},"ii":{"n":"Ingeniería de la Información","c":[["I","Introducción a la Ingeniería|4|170211|3|2;Matemáticas I|5|138649|4|2;Economía General I|5|132641|4|2;Lenguaje I|4|120001|4|0"],["II","Herramientas de Programación|4|170335|3|2;Fundamentos de Contabilidad|4|160092|3|2;Matemáticas II|5|131650|4|2;Economía General II|5|130642|4|2;Lenguaje II|4|120006|4|0"],["III","Algoritmos y Estructura de Datos|4|170065|3|2;Contabilidad Financiera Intermedia|5|160171|4|2;Investigación Académica|3|150140|2|2;Estadística I|4|130224|4|1"],["IV","Estadística II|4|130225|4|1;Ingeniería de Procesos|4|170135|4|1;Matemáticas Discretas para la Computación|4|170333|4|0;Arquitectura del Sistema de Información|4|170119|3|2;Marketing Estratégico|4|1MN035|4|0"],["V","Fundamentos de Analítica|4|170336|4|0;Programación Avanzada para la Ciencia de Datos|4|170107|3|2;Álgebra Lineal Aplicada|4|170324|3|2;Ingeniería de Datos|4|170179|4|3;Fundamentos de Finanzas|4|1F0112|3|2"],["VI","Física|5|170137|4|2;Data Mining|4|170327|3|2;Machine Learning|4|170338|4|0;Gestión del Capital Humano|3|142097|2|2"],["VII","Analítica de la Web|4|170043|3|2;Inteligencia Computacional|4|170339|4|0;Desarrollo de Soluciones Empresariales|4|170212|4|1;Estrategia|4|142083|4|0"],["VIII","Tecnología para el Desarrollo Sostenible|3|170346|3|1;Computación de Alto Desempeño y Cloud Computing|4|170353|3|2;Deep Learning|4|170328|3|2;Infraestructura Tecnológica|4|170331|4|1"],["IX","Big Data Analytics|4|170216|4|0;Business Intelligence|3|170342|3|1;Trabajo Final de Ingeniería de la Información I|4|170348|4|0"],["X","Trabajo Final de Ingeniería de la Información II|4|170349|4|0;Proyección Social|4|150013|4|0;Ética|4|120133|4|0"]]},"ie":{"n":"Ingeniería Empresarial","c":[["I","Introducción a la Ingeniería|4|170211|3|2;Matemáticas I|5|138649|4|2;Economía General I|5|132641|4|2;Lenguaje I|4|120001|4|0"],["II","Tecnología y Negocios Digitales|4|170350|3|2;Fundamentos de Contabilidad|4|160092|3|2;Matemáticas II|5|131650|4|2;Economía General II|5|130642|4|2;Lenguaje II|4|120006|4|0"],["III","Herramientas de Programación|4|170335|3|2;Contabilidad Financiera Intermedia|5|160171|4|2;Investigación Académica|3|150140|2|2;Estadística I|4|130224|4|1"],["IV","Estadística II|4|130225|4|1;Ingeniería de Procesos|4|170135|4|1;Design Thinking and Technological Innovation|4|170329|3|2;Arquitectura del Sistema de Información|4|170119|3|2;Marketing Estratégico|4|1MN035|4|0"],["V","Fundamentos de Analítica|4|170336|4|0;Investigación de Operaciones|4|170352|4|1;Métodos de Investigación Cuantitativa|4|170351|3|2;Ingeniería de Datos|4|170179|3|2;Fundamentos de Finanzas|4|1F0112|3|2"],["VI","Física|5|170137|4|2;Procesos de Suministro|4|170337|3|2;Gestión de Proyectos|4|170345|4|0;Gestión del Capital Humano|3|142097|2|2"],["VII","Procesos de Producción|4|170340|3|2;Metodologías Ágiles|4|170344|4|0;Desarrollo de Soluciones Empresariales|4|170212|4|1;Estrategia|4|142083|4|0"],["VIII","Tecnología para el Desarrollo Sostenible|3|170346|3|1;Procesos de Distribución|4|170341|3|2;Transformación Digital y Gestión del Cambio|4|170347|3|2;Infraestructura Tecnológica|4|170331|4|1;Formulación y Evaluación de Proyectos|4|179062|4|0"],["IX","Gerencia de Ingeniería de Valor|3|170343|2|2;Emprendimiento Tecnológico|4|170330|4|0"],["X","Trabajo Final de Ingeniería Empresarial|4|170097|4|0;Proyección Social|4|150013|4|0;Ética|4|120133|4|0"]],"x":[["Concentración: Analítica de negocios","Machine Learning para la Toma de Decisiones|4|170319|4|1;Analítica Aplicada a los Negocios|4|170325|4|0;Tópicos Avanzados de Analítica Aplicada|4|170371|4|0;Tópicos Avanzados de Analítica II|3|170373|3|1;Tópicos Avanzados de Analítica III|3|170374|2|2"],["Concentración: Gestión de los sistemas de información","SAP Hana para Integración de Procesos|3|170312|2|2;Seminario de Ingeniería sobre Sistemas de Información o Tecnología|2|170365|2|0;Tópicos Avanzados sobre Sistemas de Información o Tecnología|3|170366|3|1;Nuevas Tecnologías y Sistemas de Información|3|170367|2|2"],["Concentración: Finanzas corporativas","Finanzas Corporativas I|5|1F0120|4|2;Análisis Financiero|4|1F0162|3|2;Gestión Financiera|4|1F0351|4|0;Seminario de Ethics in Finance|2|1F0373|2|0;Seminario de Evaluación y Financiamiento de Proyectos|2|1F0023|2|0;Seminario M&A Case Studies|2|1F0227|2|0;Seminario de Private Equity - Nexus Group|2|1F0128|2|0;Seminario de Private Equity - Enfoca|2|1F0166|2|0;Seminario de Valorización de Empresas|2|1F0027|2|0;Seminario de Fintech|2|1F0202|2|0;Seminario de Venture Capital|2|1F0127|2|0;Certificaciones Internacionales|2|1F0108|2|0"]]},"iid":{"n":"Ingeniería en Innovación y Diseño","c":[["I","Introducción a la Ingeniería|4|170211|3|2;Matemáticas I|5|138649|4|2;Economía General I|5|132641|4|2;Lenguaje I|4|120001|4|0"],["II","Tecnología y Negocios Digitales|4|170350|3|2;Fundamentos de Contabilidad|4|160092|3|2;Matemáticas II|5|131650|4|2;Economía General II|5|130642|4|2;Lenguaje II|4|120006|4|0"],["III","Herramientas de Programación|4|170335|3|2;Contabilidad Financiera Intermedia|5|160171|4|2;Investigación Académica|3|150140|2|2;Estadística I|4|130224|4|1"],["IV","Estadística II|4|130225|4|1;Ingeniería de Procesos|4|170135|4|1;Design Thinking and Technological Innovation|4|170329|3|2;Arquitectura del Sistema de Información|4|170119|3|2;Marketing Estratégico|4|1MN035|4|0"],["V","Fundamentos de Analítica|4|170336|4|0;Fundamentos de Finanzas|4|1F0112|3|2;Comportamiento del Consumidor|4|1MN017|4|0;Historia Crítica del Diseño|4|170441|3|2;Tecnología de los Materiales|4|170444|3|1"],["VI","Física|5|170137|4|2;Gestión del Capital Humano|3|142097|2|2;Experiencia del Usuario|4|170446|2|2;Teoría de los Sentidos|4|170450|3|2"],["VII","Estrategia|4|142083|4|0;Tecnología y Medios de Comunicación|4|170456|2|2;Semiótica y Teoría del Diseño|4|170462|3|2;Técnicas de Innovación y Experimentación I|4|170465|3|2"],["VIII","Tecnología para el Desarrollo Sostenible|3|170346|3|1;Urbanismo y Espacios Sociales|4|170466|3|2;Diseño Gráfico Digital|4|170432|3|2;Técnicas de Innovación y Experimentación II|4|170471|3|2"],["IX","Curso Integrador de Experiencia del Usuario|4|170480|3|2;Diseño de Herramientas Digitales|3|170482|3|1;Técnicas de Innovación y Experimentación III|4|170487|3|2"],["X","Trabajo Final de Innovación y Diseño|4|170490|4|0;Proyección Social|4|150013|4|0;Ética|4|120133|4|0"]]},"mkt":{"n":"Marketing","c":[["I","Lenguaje I|4|120001|4|0;Matemáticas I|5|138649|4|2;Economía General I|5|132641|4|2;Fundamentos de las Ciencias Empresariales|4|141038|4|0"],["II","Lenguaje II|4|120006|4|0;Fundamentos de Contabilidad|4|160092|3|2;Estadística I|4|130224|4|1;Fundamentos de Marketing|4|1MN018|4|0"],["III","Economía General II|5|130642|4|2;Diseño Organizacional y Estrategia|4|142081|4|0;Comportamiento del Consumidor|4|1MN017|4|0;Analítica de Datos para los Negocios|3|142277|0|6;Marketing Sostenible|3|1MN381|3|0;Contabilidad Financiera Intermedia|5|160171|4|2"],["IV","Ética|4|120133|4|0;Gestión de Productos|3|1MN372|2|2;Análisis Multivariado para los Negocios|4|141036|4|1;Métodos Cuantitativos para la Gestión en las Organizaciones|4|142096|3|2"],["V","Fundamentos de Finanzas|4|1F0112|3|2;Estrategias de Branding|3|1MN027|2|2;Pricing|3|1MN385|2|2;Sistemas de Información y Análisis de Datos|3|142273|2|2;Investigación de Mercados|4|1MN020|4|0"],["VI","Finanzas Corporativas I|5|1F0120|4|2;Investigación Académica|3|150140|2|2;Estrategias de Comunicación y Promoción|4|1MN368|4|0;Canales de Distribución|4|1MN367|4|0;Investigación de Mercados Aplicada|3|1MN022|2|2;Innovación y Gestión en Negocios Digitales|3|142091|2|2"],["VII","Marketing Digital y Redes Sociales|4|1MN029|4|0;Trade Marketing|3|1MN075|2|2;Marketing Relacional y CRM|3|1MN380|2|2;Business Agility|3|142280|2|2"],["VIII","Métricas y Analítica de Marketing|4|1MN382|4|0;Gestión Comercial|3|1MN371|2|2;Estrategia|4|142083|4|0;Marketing B2B|3|1MN379|3|0;Marketing de Servicios|3|1MN086|3|0"],["IX","Proyección Social|4|150013|4|0;International Marketing|3|1MN049|3|0;Investigación en Marketing I|3|1MN377|2|2"],["X","Plan de Marketing|4|1MN384|4|0;Investigación en Marketing II|4|1MN378|4|0"]]},"nin":{"n":"Negocios Internacionales","c":[["I","Matemáticas I|5|138649|4|2;Lenguaje I|4|120001|4|0;Fundamentos de las Ciencias Empresariales|4|141038|4|0;Fundamentos de Contabilidad|4|160092|2|3;Economía General I|5|132641|4|2"],["II","Matemáticas para los Negocios|4|130230|3|2;Lenguaje II|4|120006|4|0;Economía General II|5|130642|4|2;Contabilidad Financiera Intermedia|5|160171|4|2"],["III","Estadística I|4|130224|4|1;Diseño Organizacional y Estrategia|4|142081|4|0;Contabilidad para la Toma de Decisiones|5|160025|4|2"],["IV","Teoría del Comercio Internacional y Procesos de Integración|4|1MN400|3|2;Fundamentos de Finanzas|4|1F0112|3|2;Marketing Estratégico|4|1MN035|4|0;Analítica de Datos para los Negocios|3|142277|0|6"],["V","Análisis Multivariado para los Negocios|4|141036|3|2;Finanzas Corporativas I|5|1F0120|4|2;Investigación de Mercados|4|1MN020|4|0;Investigación Académica|3|150140|2|2;Fundamentos Económicos y Organizacionales para los Negocios|4|1MN370|4|0"],["VI","Sistemas de Información y Análisis de Datos|3|142273|2|2;International Finance|4|1F0326|3|2;Gestión Sostenible de la Oferta Exportable|4|1MN003|4|0;Innovación y Gestión en Negocios Digitales|3|142091|2|2;Administración del Comercio Internacional|4|1MN366|3|2"],["VII","Logística Internacional|4|1MN005|4|0;Dirección Internacional de Empresas|4|1MN006|4|0;Derecho para los Negocios Internacionales|4|180092|4|0;International Affairs|4|1MN007|4|0"],["VIII","Dirección Estratégica|4|149078|4|0;Gestión de Mercados Globales|4|1MN008|4|0;Cross Cultural & International Management|4|1MN009|4|0;Negociaciones Comerciales Internacionales|4|1MN401|3|2"],["IX","Proyección Social|4|150013|4|0;Investigación Aplicada en Negocios Internacionales|4|1MN376|3|2;Estrategias de Internacionalización|4|1MN402|3|2;International Human Resources Management|4|1MN375|4|0"],["X","Ética|4|120133|4|0;International Business Plan|5|1MN374|4|2"]]},"pfe":{"n":"Política, Filosofía y Economía","c":[["I","Economía General I|5|132641|4|2;Fundamentos de Contabilidad|4|160092|3|2;Introducción a la Política, Filosofía y Economía|4|120260|4|0;Lenguaje I|4|120001|4|0;Matemáticas I|5|138649|4|2"],["II","Antropología Filosófica|4|120253|4|0;Lenguaje II|4|120006|4|0;Poder e Instituciones|4|150277|4|0"],["III","Economía General II|5|130642|4|2;Investigación Académica|3|150140|2|2;Matemáticas II|5|131650|4|2;Política Comparada|4|150289|4|0"],["IV","Ciudadanía y Democratización|4|150295|4|0;Estadística I|4|130224|4|1;Filosofía Política|4|120273|4|0;Introducción al Derecho|5|180277|5|0;Microeconomía I|5|138201|4|2"],["V","Econometría Aplicada|5|130538|4|2;Economía Política Internacional|4|150350|4|0;Macroeconomía de Corto Plazo|5|130559|4|2"],["VI","Fundamentos Filosóficos de los Derechos Humanos|4|120254|4|0;Gestión de los Recursos Naturales|4|135645|4|0;Microeconomía Aplicada|5|130609|4|2"],["VII","Diseño, Evaluación y Gestión de Proyectos|5|130545|4|2;Teoría del Comercio Internacional|4|130656|3|2;Métodos Mixtos de Investigación para las Ciencias Sociales|4|150285|4|0"],["VIII","Crecimiento e Instituciones|5|130541|4|2;Debates en Filosofía|4|120261|4|0;Debates sobre Política y Desarrollo|4|150278|4|0;Fundamentos Filosóficos de la Economía|4|120274|4|0"],["IX","Ética|4|120133|4|0;Historia del Pensamiento Económico|4|135015|4|0;Proyección Social|4|150013|4|0"],["X","Seminario de Investigación Aplicada en Política, Filosofía y Economía|2|130562|2|0"]]}};
+const FI_NV=[["Nivelación en Matemáticas",4,"134654",3,2],["Nivelación en Lenguaje",3,"120000",4,0],["Nivelación en Informática",3,"170131",2,2]],FI_BL=[["Sociología",4,"158109",4,0],["Psicología",4,"158000",4,0],["Antropología",4,"158143",4,0],["Filosofía",4,"129007",4,0],["Teología de las religiones",4,"120125",4,0],["Pensamiento social contemporáneo",4,"157006",4,0],["Ciencia política",4,"150004",4,0],["Historia económica y empresarial",4,"120070",4,0],["Historia crítica del Perú",4,"122005",4,0],["Historia y filosofía de la ciencia",4,"124019",4,0],["Introducción a la cosmología y las ciencias de la vida",4,"170354",4,0],["Pensamiento sistémico",4,"170334",4,0],["Emprendimiento e innovación",4,"142082",4,0],["Literatura",4,"124020",4,0],["Liderazgo",4,"142095",4,0]];
+const FI_BON=[{id:"enc",n:"Encuesta",p:16,d:"Encuesta de docentes y encargados de práctica"},{id:"int",n:"Intercambio",p:16},{id:"mp",n:"Matrícula preventiva",p:16},{id:"dep",n:"Deportista",p:16},{id:"rea",n:"REA",p:8},{id:"reda",n:"REDA",p:8}];
+/* false: el promedio NO se redondea antes de multiplicar por 10 (143.33). true: se redondea a 2 decimales primero (143.3) */
+const FI_REDONDEA_PROMEDIO=false;
+const FS={first:null,car:"",rows:[],ca:"",bon:{}};
+let fiUid=0,fiSumIn=false,fiFaqIn=false,FI_LIST=[];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const unp=s=>s.split(";").map(x=>{const a=x.split("|");return[a[0],+a[1],a[2],+a[3],+a[4]]}); /* [nombre, créditos, código, horas T, horas P] */
+function fchk(){const m=$("fimini");if(m)m.classList.toggle("on",view==="fi"&&FS.first!==null&&!fiSumIn&&!fiFaqIn)}
+function fiCarOpts(){const k=Object.keys(PLN).sort((a,b)=>PLN[a].n.localeCompare(PLN[b].n,"es"));
+ $("fi-car").innerHTML='<option value="">Elige tu carrera…</option>'+k.map(x=>`<option value="${x}">${esc(PLN[x].n)}</option>`).join("")}
+function fiAddOpts(){
+ const g=[{l:"Nivelación",it:FI_NV}],p=PLN[FS.car];
+ if(p){p.c.forEach(([r,s])=>g.push({l:"Ciclo "+r,it:unp(s)}));(p.x||[]).forEach(([l,s])=>g.push({l,it:unp(s)}))}
+ g.push({l:"Cursos de bloque (4 créditos)",it:FI_BL});
+ FI_LIST=[];let h='<option value="">Elige un curso…</option>';
+ g.forEach(gr=>{h+=`<optgroup label="${esc(gr.l)}">`;gr.it.forEach(it=>{h+=`<option value="${FI_LIST.length}">${esc(it[0])} (${it[1]} cr.)</option>`;FI_LIST.push(it)});h+="</optgroup>"});
+ $("fi-add").innerHTML=h+'<option value="x">Otro curso (escribir nombre y créditos)</option>'}
+const fiRow=r=>`<div class="frow" data-u="${r.u}" data-cod="${esc(r.code||"")}" data-t="${esc(r.t??"")}" data-p="${esc(r.p??"")}"><div class="fnm">${r.c?`<input class="fin tx" data-f="name" type="text" maxlength="70" placeholder="Nombre del curso" aria-label="Nombre del curso" value="${esc(r.name)}">`:esc(r.name)}</div>`+
+ `<label class="flb fcr"><small>Créditos</small><input class="fin" data-f="cr" type="number" inputmode="numeric" min="1" max="12" step="1" placeholder="Créd." aria-label="Créditos de ${esc(r.name||"curso")}" value="${esc(r.cr)}"></label>`+
+ `<label class="flb fnt"><small>Nota</small><input class="fin" data-f="n" type="number" inputmode="decimal" min="0" max="20" step="any" placeholder="Nota" aria-label="Nota de ${esc(r.name||"curso")}" value="${esc(r.n)}"></label>`+
+ `<div class="fnc"><small>N × C</small><b>—</b></div><button type="button" class="fdel" data-del="${r.u}" aria-label="Quitar ${esc(r.name||"curso")}">✕</button></div>`;
+function fiRows(){$("fi-rows").innerHTML=FS.rows.map(fiRow).join("");$("fi-empty").hidden=FS.rows.length>0;$("fhd").hidden=!FS.rows.length}
+function fiBonUi(){$("fi-bon").innerHTML=FI_BON.map(b=>`<label class="fbon${FS.bon[b.id]?" on":""}"><input type="checkbox" data-b="${b.id}"${FS.bon[b.id]?" checked":""}><span class="fbt">${b.n}${b.d?`<em>${b.d}</em>`:""}</span><span class="fpt">+${b.p}</span></label>`).join("")}
+function fiMode(){
+ const f=FS.first;
+ document.querySelectorAll("[data-first]").forEach(b=>b.setAttribute("aria-checked",String(f!==null&&(b.dataset.first==="1")===f)));
+ $("fi-main").hidden=f===null;
+ $("ffor").textContent=f?"FI = (promedio del semestre × 10) + créditos matriculados + bonificaciones":"FI = (promedio del último semestre × 10) + créditos académicos acumulados + bonificaciones";
+ $("fi-cr-first").hidden=f!==true;$("fi-cr-next").hidden=f!==false;
+ $("fi-h-cr").textContent=f?"Créditos matriculados":"Créditos acumulados";
+ $("flg-cr").textContent=f?"Créditos matriculados":"Créditos acumulados";
+ $("fb-cl").textContent=f?"Créditos matriculados":"Créditos acumulados";
+ fiUpdate();fchk()}
+function fiUpdate(){
+ const R=FS.rows,first=FS.first===true;
+ const bad=(r,k)=>{const v=r[k];if(v===""||v==null)return false;const x=+v;return !isFinite(x)||(k==="n"?(x<0||x>20):(x<=0||x>12))};
+ let sc=0,sn=0,nok=0,miss=0,inv=0;
+ R.forEach(r=>{
+  const bn=bad(r,"n"),bc=bad(r,"cr"),ok=r.n!==""&&r.cr!==""&&!bn&&!bc;
+  if(bn||bc)inv++;else if(!ok)miss++;
+  if(ok){sc+=+r.cr;sn+=(+r.cr)*(+r.n);nok++}
+  const el=document.querySelector('.frow[data-u="'+r.u+'"]');
+  if(el){el.querySelector('[data-f="n"]').classList.toggle("bad",bn);el.querySelector('[data-f="cr"]').classList.toggle("bad",bc);el.querySelector(".fnc b").textContent=ok?fmt((+r.cr)*(+r.n)):"—"}
+ });
+ const avg=sc>0?sn/sc:null,avgU=avg===null?null:(FI_REDONDEA_PROMEDIO?Math.round(avg*100)/100:avg),base=avgU===null?null:avgU*10;
+ const caOk=FS.ca!==""&&isFinite(+FS.ca)&&+FS.ca>=0,cred=first?(sc>0?sc:null):(caOk?+FS.ca:null);
+ const bon=FI_BON.reduce((a,b)=>a+(FS.bon[b.id]?b.p:0),0);
+ const fi=(base!==null&&cred!==null)?base+cred+bon:null,t=fi===null?"—":fmt(fi);
+ $("fi-crv").textContent=sc;
+ $("fi-tot").innerHTML=R.length?`<span>${nok} de ${R.length} ${R.length===1?"curso con nota":"cursos con nota"}</span><span>${sc} créditos · N × C: ${fmt(sn)}</span>`:"";
+ $("fi-tot").hidden=!R.length;
+ $("fi-bons").textContent=bon?"Bonificaciones: +"+bon+" puntos":"Aún no marcaste bonificaciones";
+ $("fb-sc").textContent=nok?String(sc):"—";$("fb-sn").textContent=nok?fmt(sn):"—";
+ $("fb-avg").textContent=avg===null?"—":avg.toFixed(2);
+ $("fb-base").textContent=base===null?"—":fmt(base);
+ $("fb-cr").textContent=cred===null?"—":"+ "+fmt(cred);
+ $("fb-bon").textContent="+ "+fmt(bon);
+ $("fb-fi").textContent=t;
+ setNum($("fibig"),t);$("fibig").className=fi===null?"na":"";
+ setNum($("fmbig"),t);$("fmbig").className=fi===null?"na":"";
+ const vals=[base||0,cred||0,bon],tot=vals.reduce((a,b)=>a+b,0);
+ document.querySelectorAll("#fbar span").forEach((s,i)=>{s.style.flexGrow=tot?(vals[i]>0?Math.max(vals[i],tot*.06):0):1;s.textContent=vals[i]>0?fmt(vals[i]):""});
+ let m="",bd=false;
+ if(!R.length)m="Agrega los cursos que llevaste este semestre para calcular tu promedio.";
+ else if(inv){m="Revisa los campos en rojo: la nota va de 0 a 20 y los créditos deben ser mayores que 0.";bd=true}
+ else if(!nok)m="Escribe la nota y los créditos de tus cursos para calcular el promedio.";
+ else if(miss)m="Faltan datos en "+miss+(miss===1?" curso":" cursos")+": todavía no entra"+(miss===1?"":"n")+" al cálculo.";
+ else if(!first&&!caOk)m="Escribe tus créditos acumulados para ver tu FI.";
+ $("fimsg").hidden=!m;$("fimsg").textContent=m;$("fimsg").classList.toggle("bad",bd);
+ fchk()}
+function fiAddRow(r){FS.rows.push(Object.assign({u:++fiUid,name:"",cr:"",n:"",c:false,code:"",t:"",p:""},r));fiRows();fiUpdate();
+ const q=FS.rows[FS.rows.length-1].c?'[data-f="name"]':'[data-f="n"]',el=document.querySelector('.frow[data-u="'+fiUid+'"] '+q);if(el)el.focus()}
+function fiReset(){FS.first=null;FS.car="";FS.rows=[];FS.ca="";FS.bon={};$("fi-car").value="";$("fi-ca").value="";fiAddOpts();fiRows();fiBonUi();fiMode();window.scrollTo({top:0,behavior:"smooth"})}
+function fiExample(){
+ FS.first=false;FS.car="eco";FS.ca="32";FS.bon={enc:true};
+ FS.rows=[["Lenguaje II",4,15],["Estadística I",4,12],["Economía General I",5,14],["Matemáticas II",5,16]].map(([name,cr,n])=>({u:++fiUid,name,cr:String(cr),n:String(n),c:false}));
+ $("fi-car").value="eco";$("fi-ca").value="32";fiAddOpts();fiRows();fiBonUi();fiMode();
+ $("fisum").scrollIntoView({behavior:"smooth",block:"center"})}
+fiCarOpts();fiAddOpts();fiRows();fiBonUi();fiMode();
+{const V=$("v-fi");
+ V.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+  if(b.dataset.first!==undefined){FS.first=b.dataset.first==="1";fiMode()}
+  else if(b.dataset.del){FS.rows=FS.rows.filter(r=>r.u!==+b.dataset.del);fiRows();fiUpdate()}
+  else if(b.id==="fiex")fiExample();
+  else if(b.id==="firs")fiReset();
+  else if(b.id==="home2"){closeList();showView("welcome")}
+  else if(b.dataset.pick)showView("pick")});
+ V.addEventListener("input",e=>{const t=e.target,row=t.closest(".frow");
+  if(row&&t.dataset.f){const r=FS.rows.find(x=>x.u===+row.dataset.u);if(!r)return;
+   if(t.dataset.f==="name"){r.name=t.value;return}
+   r[t.dataset.f]=t.value;fiUpdate()}
+  else if(t.id==="fi-ca"){FS.ca=t.value;fiUpdate()}});
+ V.addEventListener("change",e=>{const t=e.target;
+  if(t.id==="fi-car"){FS.car=t.value;fiAddOpts()}
+  else if(t.id==="fi-add"){const v=t.value;t.value="";if(v==="")return;
+   if(v==="x")fiAddRow({c:true});else{const c=FI_LIST[+v];if(c)fiAddRow({name:c[0],cr:String(c[1]),code:c[2],t:c[3],p:c[4]})}}
+  else if(t.dataset.b){FS.bon[t.dataset.b]=t.checked;t.closest(".fbon").classList.toggle("on",t.checked);fiUpdate()}})}
+new IntersectionObserver(es=>es.forEach(e=>{if(e.target.id==="fisum")fiSumIn=e.isIntersecting;else fiFaqIn=e.isIntersecting;fchk()})).observe($("fisum"));
+new IntersectionObserver(es=>es.forEach(e=>{fiFaqIn=e.isIntersecting;faqNear=e.isIntersecting;chk();fchk()}),{rootMargin:"0px 0px 170px 0px"}).observe($("fifaq"));
+if(FI_ACTIVO){const t=document.querySelector("#v-pick .t2");if(t)t.textContent="cálculo"}
+
+/* Si hay notas guardadas, se vuelve directo al curso donde estaba el alumno */
+const back=load();
+if(back)track("progreso_restaurado",{curso:back});
+setCourse(back||"mat");
+showView(back?"tool":"welcome");
 </script>
 </body>
 </html>
