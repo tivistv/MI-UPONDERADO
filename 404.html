@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Página no encontrada (404) | My PonderUP</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#061F47">
+<meta name="color-scheme" content="dark">
+<link rel="icon" type="image/png" href="https://i.postimg.cc/kgMrMKWb/Recurso-3.png">
+<link rel="preload" href="/fonts/montserrat-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+@font-face{font-family:Montserrat;font-style:normal;font-weight:100 900;font-display:swap;src:url(/fonts/montserrat-latin-wght-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Montserrat Fallback";src:local("Arial");size-adjust:112.83%;ascent-override:85.79%;descent-override:22.25%;line-gap-override:0%}
+:root{--navy:#061F47;--green:#00F03C;--blue:#0A5CFF;--pink:#F000F0;--mut:#9fb0cf;--bad:#ff7a7a;box-sizing:border-box}
+*{box-sizing:border-box}
+html{background:var(--navy);height:100%}
+body{margin:0;min-height:100%;background:var(--navy);color:#fff;font:500 16px/1.55 Montserrat,"Montserrat Fallback","Helvetica Neue",Arial,sans-serif;display:flex;align-items:center;
+ padding:max(48px,env(safe-area-inset-top,0px)) max(20px,env(safe-area-inset-right,0px)) max(48px,env(safe-area-inset-bottom,0px)) max(20px,env(safe-area-inset-left,0px))}
+main{width:100%;max-width:640px;margin:0 auto}
+.strip{display:flex;width:150px;height:6px;margin:0 0 28px}.strip i{flex:1}
+.n{margin:0;color:#fff;font-weight:900;font-size:clamp(5.5rem,30vw,11rem);line-height:.86;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+h1{margin:20px 0 12px;font-weight:800;font-size:clamp(1.5rem,6vw,2.1rem);line-height:1.15;letter-spacing:-.01em}
+.vh{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+p{margin:0 0 28px;max-width:46ch;color:#dfe6f5}
+.btn{display:inline-block;background:var(--green);color:var(--navy);font:700 .8rem/1 Montserrat,"Montserrat Fallback",Arial,sans-serif;letter-spacing:.03em;text-transform:uppercase;padding:18px 32px;border-radius:2px;text-decoration:none}
+.btn:hover{background:#fff}
+:focus-visible{outline:3px solid var(--blue);outline-offset:3px}
+.nota{margin:56px 0 0}
+.sc{position:relative;height:14px;background:rgba(255,255,255,.14)}
+.sc .f{position:absolute;inset:0 auto 0 0;width:20%;background:var(--bad);transform-origin:left;animation:fill .9s .35s cubic-bezier(.2,.7,.2,1) backwards}
+.sc .m{position:absolute;left:55%;top:-8px;bottom:-8px;width:3px;margin-left:-1.5px;background:var(--green)}
+.tk{position:relative;height:1.6em;margin-top:12px;font-size:.72rem;font-weight:700;color:var(--mut);font-variant-numeric:tabular-nums}
+.tk span{position:absolute;transform:translateX(-50%)}.tk .a{left:0;transform:none}.tk .b{left:20%;color:var(--bad)}.tk .c{left:55%;color:var(--green)}.tk .d{left:auto;right:0;transform:none}
+.cap{margin:10px 0 0;font-size:.9rem;color:#dfe6f5}
+.ruta{margin:24px 0 0;font-size:.8rem;color:var(--mut);overflow-wrap:anywhere}.ruta code{font:600 .8rem/1.4 Montserrat,"Montserrat Fallback",Arial,sans-serif;color:#fff}
+@keyframes fill{from{transform:scaleX(0)}to{transform:none}}
+@media(prefers-reduced-motion:reduce){.sc .f{animation:none}}
+</style>
+</head>
+<body>
+<main>
+<div class="strip" aria-hidden="true"><i style="background:var(--blue)"></i><i style="background:var(--green)"></i><i style="background:var(--pink)"></i><i style="background:#fff"></i></div>
+<p class="n" aria-hidden="true">404</p>
+<h1><span class="vh">Error 404: </span>Esta página no existe</h1>
+<p>El enlace puede estar mal escrito o la página ya no está disponible. En el inicio puedes calcular tu ponderado.</p>
+<a class="btn" href="/">Volver al inicio</a>
+<div class="nota" role="img" aria-label="Escala de notas de 0 a 20: esta página sacó 4 y la nota para aprobar es 11">
+ <div class="sc"><i class="f"></i><i class="m"></i></div>
+ <div class="tk" aria-hidden="true"><span class="a">0</span><span class="b">4</span><span class="c">11</span><span class="d">20</span></div>
+</div>
+<p class="cap">Esta página sacó 4. Para aprobar necesitaba 11.</p>
+<p class="ruta" id="ruta" hidden>Buscaste: <code id="p"></code></p>
+</main>
+<script>
+(function(){var r=location.pathname+location.search;if(r.length>1){document.getElementById("p").textContent=r.length>80?r.slice(0,80)+"…":r;document.getElementById("ruta").hidden=false}})();
+</script>
+</body>
+</html>
