@@ -560,7 +560,7 @@ input.g:placeholder-shown+.sf{display:none}
 .fc>div:first-child{grid-area:lg}
 #fl{grid-area:co;justify-self:end}
 .fc>.fl:last-child{grid-area:cm;align-self:end}
-@media (max-width:760px){.fc{grid-template-columns:minmax(0,1fr);grid-template-rows:auto;grid-template-areas:"lg" "co" "cm"}#fl{justify-self:start}.fc>.fl:last-child{align-self:start}}
+@media (max-width:760px){.fc{grid-template-columns:minmax(0,1fr);grid-template-rows:auto;grid-template-areas:"lg" "cm" "co"}#fl{justify-self:start}.fc>.fl:last-child{align-self:start}}
 
 /* ===== Factor de inscripción ===== */
 .fback{display:flex;align-items:center;gap:10px;width:100%;background:rgba(255,255,255,.08);border:0;border-bottom:4px solid var(--green);color:#fff;padding:12px 14px;font:800 .95rem/1.2 Montserrat,"Montserrat Fallback",Arial,sans-serif;text-transform:uppercase;text-align:left;cursor:pointer}
@@ -878,7 +878,7 @@ der1:{n:"Introducción al Derecho",pre:"",rf:1,i:"No hay examen parcial ni final
  {id:"pc",n:"Prácticas Calificadas",w:40,ch:[{id:"pc1",n:"PC1",w:25},{id:"pc2",n:"PC2",w:25},{id:"pc3",n:"PC3",w:25},{id:"pc4",n:"PC4",w:25}]},
  {id:"ec",n:"Evaluación Continua",w:30,ch:[{id:"a1",n:"Actividad 1",s:"A1",w:T},{id:"a2",n:"Actividad 2",s:"A2",w:T},{id:"a3",n:"Actividad 3",s:"A3",w:T}]}]}}
 };
-const KS=["mat","len","inf","con","fce","int","mat1","len1","eco1","der1"],ST={};let cur,S,idx,view="welcome",sumIn=false,faqIn=false;
+const KS=["mat","len","inf","con","fce","int","der1","mat1","len1","eco1"],ST={};let cur,S,idx,view="welcome",sumIn=false,faqIn=false;
 const GR=[["Nivelación",0],["Cursos",1]],gof=x=>C[x].pre===""?1:0,inG=g=>KS.filter(x=>gof(x)===g);
 const walk=(n,f,d=0)=>(n.ch||[]).forEach(c=>{f(c,d);walk(c,f,d+1)});
 const leaves=(n,a=[])=>((n.ch||[]).forEach(c=>c.ch?leaves(c,a):a.push(c)),a);
