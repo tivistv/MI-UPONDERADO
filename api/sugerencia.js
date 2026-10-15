@@ -13,7 +13,7 @@
      Opcionales:
        TURNSTILE_SECRET     clave secreta de Cloudflare Turnstile (si esta, el captcha es obligatorio)
        UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN   (o KV_REST_API_URL / KV_REST_API_TOKEN) para contadores fiables
-       IP_COOLDOWN_SEC (45) | IP_DAILY_MAX (10) | GLOBAL_DAILY_CAP (20) | GLOBAL_MONTHLY_CAP (45)   (0 = sin limite)
+       IP_COOLDOWN_SEC (20) | IP_DAILY_MAX (10) | GLOBAL_DAILY_CAP (20) | GLOBAL_MONTHLY_CAP (45)   (0 = sin limite)
        ALLOWED_ORIGINS      https://tudominio.com,https://www.tudominio.com  (si no esta, solo se acepta el mismo dominio)
        SITE_URL             https://tudominio.com  (para "Restringir dominio" de Formspree)
        RATE_SALT            texto cualquiera: se mezcla con la IP antes de guardarla (nunca se guarda la IP en claro)
@@ -24,7 +24,7 @@ const crypto = require('node:crypto');
 const env = (k, d = '') => (process.env[k] !== undefined && process.env[k] !== '' ? process.env[k] : d);
 const num = (k, d) => { const n = parseInt(env(k), 10); return Number.isFinite(n) && n >= 0 ? n : d; };
 const limits = () => ({
-  cooldown: num('IP_COOLDOWN_SEC', 45),
+  cooldown: num('IP_COOLDOWN_SEC', 20),
   ipDaily: num('IP_DAILY_MAX', 10),
   gDaily: num('GLOBAL_DAILY_CAP', 20),
   gMonthly: num('GLOBAL_MONTHLY_CAP', 45),
@@ -38,6 +38,7 @@ const memStore = {
   async setNx(k, ttl) { if (memLive(k)) return false; mem.set(k, { n: 1, exp: Date.now() + ttl * 1000 }); memPrune(); return true; },
   async incr(k, ttl) { const e = memLive(k); if (e) return ++e.n; mem.set(k, { n: 1, exp: Date.now() + ttl * 1000 }); memPrune(); return 1; },
   async del(k) { mem.delete(k); },
+  async decr(k) { const e = memLive(k); if (e && e.n > 0) e.n--; },
 };
 function redisStore(url, token) {
   const call = async (cmds) => {
@@ -54,6 +55,7 @@ function redisStore(url, token) {
     async setNx(k, ttl) { const [x] = await call([['SET', k, '1', 'EX', ttl, 'NX']]); return x.result === 'OK'; },
     async incr(k, ttl) { const [x] = await call([['INCR', k]]); if (x.result === 1) await call([['EXPIRE', k, ttl]]); return x.result; },
     async del(k) { await call([['DEL', k]]); },
+    async decr(k) { await call([['DECR', k]]); },
   };
 }
 const store = () => {
@@ -66,6 +68,7 @@ const store = () => {
     async setNx(k, t) { try { return await r.setNx(k, t); } catch (e) { console.error('redis->memoria:', e.message); return memStore.setNx(k, t); } },
     async incr(k, t) { try { return await r.incr(k, t); } catch (e) { console.error('redis->memoria:', e.message); return memStore.incr(k, t); } },
     async del(k) { try { await r.del(k); } catch (e) { console.error('redis->memoria:', e.message); } await memStore.del(k); },
+    async decr(k) { try { await r.decr(k); } catch (e) { console.error('redis->memoria:', e.message); } },
   };
 };
 
@@ -168,13 +171,27 @@ async function handler(req, res) {
     const ip = clientIp(req), who = sha(env('RATE_SALT', 'myponderup') + '|' + ip).slice(0, 24);
     const now = limaDate(), day = now.slice(0, 10), month = now.slice(0, 7);
 
-    /* 1) Limite por IP: espera entre envios y maximo por dia */
-    if (L.cooldown && !(await db.setNx(`mp:cd:${who}`, L.cooldown))) return fail(res, 429, 'espera', { 'Retry-After': String(L.cooldown) });
-    if (L.ipDaily && (await db.incr(`mp:ip:${day}:${who}`, 90000)) > L.ipDaily) return fail(res, 429, 'limite_dia', { 'Retry-After': '3600' });
+    /* 1) Limite por IP: espera entre envios y maximo por dia.
+       Se "reservan" aqui, pero si el envio NO se completa (captcha, cupo, error de entrega) se devuelven con release(),
+       para que un intento fallido no bloquee el reintento de la persona (antes daba "espera" tras cada fallo). */
+    const cdKey = `mp:cd:${who}`, ipKey = `mp:ip:${day}:${who}`;
+    let holdCd = false, countedIp = false;
+    const release = async () => {
+      try { if (holdCd) await db.del(cdKey); if (countedIp) await db.decr(ipKey); } catch (_) { /* nada */ }
+      holdCd = false; countedIp = false;
+    };
+    if (L.cooldown) {
+      if (!(await db.setNx(cdKey, L.cooldown))) return fail(res, 429, 'espera', { 'Retry-After': String(L.cooldown) });
+      holdCd = true;
+    }
+    if (L.ipDaily) {
+      countedIp = true;
+      if ((await db.incr(ipKey, 90000)) > L.ipDaily) { await release(); return fail(res, 429, 'limite_dia', { 'Retry-After': '3600' }); }
+    }
 
-    /* 2) Captcha (solo si se configuro) */
+    /* 2) Captcha (solo si se configuro TURNSTILE_SECRET; sin esa variable no se pide) */
     const secret = env('TURNSTILE_SECRET');
-    if (secret && !(await verifyTurnstile(secret, b.token, ip))) return fail(res, 403, 'captcha');
+    if (secret && !(await verifyTurnstile(secret, b.token, ip))) { await release(); return fail(res, 403, 'captcha'); }
 
     /* 3) Mensaje repetido (el mismo texto en las ultimas 24 h): se agradece pero no se reenvia */
     const norm = message.toLowerCase().replace(/\s+/g, ' ');
@@ -182,11 +199,11 @@ async function handler(req, res) {
     if (!(await db.setNx(dupKey, 86400))) return json(res, 200, { ok: true, repetido: true });
 
     /* 4) Topes globales: protegen el limite mensual de Formspree (50 en el plan gratis) */
-    if (L.gDaily && (await db.incr(`mp:g:${day}`, 90000)) > L.gDaily) return fail(res, 503, 'cupo', { 'Retry-After': '3600' });
-    if (L.gMonthly && (await db.incr(`mp:m:${month}`, 3000000)) > L.gMonthly) return fail(res, 503, 'cupo', { 'Retry-After': '86400' });
+    if (L.gDaily && (await db.incr(`mp:g:${day}`, 90000)) > L.gDaily) { await release(); return fail(res, 503, 'cupo', { 'Retry-After': '3600' }); }
+    if (L.gMonthly && (await db.incr(`mp:m:${month}`, 3000000)) > L.gMonthly) { await release(); return fail(res, 503, 'cupo', { 'Retry-After': '86400' }); }
 
     try { await deliver({ message, curso, seg, origin }); }
-    catch (e) { await db.del(dupKey); throw e; } /* si falla el envio, el usuario puede reintentar el mismo texto */
+    catch (e) { await db.del(dupKey); await release(); throw e; } /* si falla el envio, puede reintentar el mismo texto sin esperar */
     return json(res, 200, { ok: true });
   } catch (e) {
     console.error('sugerencia:', e && e.message);
