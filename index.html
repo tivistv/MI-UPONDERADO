@@ -1137,7 +1137,7 @@ async function doShare(o){track("compartir_click",{origen:o});
   s.onload=()=>{try{tsId=turnstile.render("#sgt",{sitekey:TS_SITEKEY,appearance:"interaction-only",callback:t=>{tsTok=t},"expired-callback":()=>{tsTok=""},"error-callback":()=>{tsTok=""}})}catch(_){tsOn=false}};
   s.onerror=()=>{tsOn=false};document.head.appendChild(s)};
  const tsReset=()=>{tsTok="";try{if(tsId!==null)turnstile.reset(tsId)}catch(_){}};
- m.addEventListener("focus",tsLoad);
+ m.addEventListener("focus",()=>{if(!t0)t0=Date.now();tsLoad()});
  m.addEventListener("input",()=>{if(!t0)t0=Date.now();grow();if(st.textContent)say("")});
  f.addEventListener("submit",async e=>{e.preventDefault();if(busy)return;
   const t=m.value.trim();
@@ -1156,7 +1156,9 @@ async function doShare(o){track("compartir_click",{origen:o});
    const r=await fetch(f.action,{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify(body),signal:window.AbortSignal&&AbortSignal.timeout?AbortSignal.timeout(15000):undefined});
    let j=null;try{j=await r.json()}catch(_){}
    if(r.ok&&j&&j.ok){addH(t);t0=0;m.value="";m.style.height="";say("¡Gracias! Recibimos tu mensaje.","ok");track("sugerencia_enviada",{curso:cur,largo:t.length})}
-   else{const code=j&&j.error;say(ERR[code]||(r.status===429?"Hay muchos envíos en este momento. Inténtalo en unos minutos.":"No se pudo enviar. Inténtalo otra vez."),"bad");track("sugerencia_error",{estado:r.status,motivo:code||""})}
+   else{let code=j&&j.error;if(code&&typeof code==="object")code="firewall";code=String(code||"");
+    const sinClave=code==="captcha"&&!TS_SITEKEY;if(sinClave)code="captcha_sin_clave";
+    say(sinClave?"El envío no está disponible por ahora. Inténtalo más tarde.":code==="espera"&&r.status===429?"Hay varios envíos desde tu red en este momento. Espera un minuto e inténtalo otra vez.":ERR[code]||(r.status===429?"Hay muchos envíos en este momento. Inténtalo en unos minutos.":"No se pudo enviar. Inténtalo otra vez."),"bad");track("sugerencia_error",{estado:r.status,motivo:code})}
    tsReset()}
   catch(_){say("No se pudo enviar. Revisa tu conexión e inténtalo otra vez.","bad");track("sugerencia_error",{estado:"red"});tsReset()}
   busy=false;b.disabled=false;b.textContent="Enviar"})}
